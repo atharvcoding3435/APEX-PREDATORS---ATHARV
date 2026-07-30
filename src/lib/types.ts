@@ -2,7 +2,7 @@ export type UserRole = "student" | "faculty" | "admin";
 
 export type ResourceType = "classroom" | "lab" | "auditorium" | "equipment" | "sports";
 
-export type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
+export type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled" | "rejected";
 
 export type Resource = {
   id: string;
@@ -29,6 +29,27 @@ export type Booking = {
   purpose: string;
   status: BookingStatus;
   qrToken: string;
+};
+
+export type BookingRequest = {
+  resourceId: string;
+  requester: string;
+  requesterRole: UserRole;
+  department: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  purpose: string;
+};
+
+export type BookingAlternative = {
+  id: string;
+  label: string;
+  resourceId: string;
+  resourceName: string;
+  startTime: string;
+  endTime: string;
+  reason: string;
 };
 
 export type WaitlistEntry = {
