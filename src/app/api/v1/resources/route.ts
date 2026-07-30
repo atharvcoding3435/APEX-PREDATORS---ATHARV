@@ -1,46 +1,29 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { resources } from "@/lib/mock-data";
+import { requireAdmin } from "@/lib/admin-utils";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import type { Resource, UserRole } from "@/lib/types";
-
-const activeRoles: UserRole[] = ["student", "faculty", "admin"];
+import type { Resource } from "@/lib/types";
 
 const resourceSchema = z.object({
   name: z.string().trim().min(2),
   type: z.enum(["classroom", "lab", "auditorium", "equipment", "sports"]),
   location: z.string().trim().min(2),
+  building: z.string().trim().min(2),
+  floor: z.string().trim().min(1),
   capacity: z.number().int().positive(),
+  availableQuantity: z.number().int().nonnegative(),
   department: z.string().trim().min(2),
   status: z.enum(["available", "pending", "booked"]).default("available"),
   schedule: z.string().trim().min(2).default("Mon-Fri, 08:00-17:00"),
-  isActive: z.boolean().default(true)
+  isActive: z.boolean().default(true),
+  approvalRequired: z.boolean().default(false),
+  maintenanceStatus: z.enum(["available", "maintenance", "unavailable"]).default("available")
 });
 
 const resourceUpdateSchema = resourceSchema.partial().extend({
   id: z.string().trim().min(1)
 });
-
-function getRequestRole(request: Request): UserRole {
-  const role = request.headers.get("x-user-role")?.toLowerCase();
-
-  return activeRoles.includes(role as UserRole) ? (role as UserRole) : "student";
-}
-
-function requireAdmin(request: Request) {
-  if (getRequestRole(request) === "admin") {
-    return null;
-  }
-
-  return NextResponse.json(
-    {
-      success: false,
-      error: "FORBIDDEN",
-      message: "Only administrators can modify resources."
-    },
-    { status: 403 }
-  );
-}
 
 function colorForStatus(status: Resource["status"]) {
   if (status === "available") {

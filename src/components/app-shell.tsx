@@ -3,6 +3,7 @@ import {
   BarChart3,
   CalendarDays,
   ClipboardCheck,
+  Settings,
   LayoutDashboard,
   ShieldCheck,
   UserCircle,
@@ -21,10 +22,13 @@ const userNavItems = [
 const adminNavItems = [
   { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/admin/resources", icon: UsersRound, label: "Resources" },
+  { href: "/admin/bookings", icon: CalendarDays, label: "Bookings" },
+  { href: "/admin/conflicts", icon: ShieldCheck, label: "Conflicts" },
   { href: "/admin/users", icon: Users, label: "Users" },
-  { href: "/admin/pending", icon: ShieldCheck, label: "Pending Approvals" },
+  { href: "/admin/pending", icon: ShieldCheck, label: "Approvals" },
   { href: "/admin/audit", icon: ClipboardCheck, label: "Audit Logs" },
-  { href: "/admin/analytics", icon: BarChart3, label: "Analytics" }
+  { href: "/admin/analytics", icon: BarChart3, label: "Analytics" },
+  { href: "/admin/settings", icon: Settings, label: "Settings" }
 ];
 
 type AppShellProps = {

@@ -5,12 +5,26 @@ import { Check, ListFilter, Pencil, Plus, Power, Search, X } from "lucide-react"
 import { AppShell } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
 import { resources as initialResources } from "@/lib/mock-data";
-import type { Resource, ResourceType } from "@/lib/types";
+import type { MaintenanceStatus, Resource, ResourceType } from "@/lib/types";
 import { cn, titleCase } from "@/lib/utils";
 
 type TypeFilter = "all" | ResourceType;
 type ActiveFilter = "all" | "active" | "inactive";
-type FormState = Pick<Resource, "name" | "type" | "location" | "capacity" | "department" | "status" | "schedule">;
+type FormState = Pick<
+  Resource,
+  | "name"
+  | "type"
+  | "building"
+  | "floor"
+  | "location"
+  | "capacity"
+  | "availableQuantity"
+  | "department"
+  | "status"
+  | "schedule"
+  | "approvalRequired"
+  | "maintenanceStatus"
+>;
 
 const typeFilters: TypeFilter[] = ["all", "classroom", "lab", "auditorium", "equipment", "sports"];
 const activeFilters: ActiveFilter[] = ["all", "active", "inactive"];
@@ -18,11 +32,16 @@ const activeFilters: ActiveFilter[] = ["all", "active", "inactive"];
 const emptyForm: FormState = {
   name: "",
   type: "classroom",
+  building: "",
+  floor: "Ground",
   location: "",
   capacity: 1,
+  availableQuantity: 1,
   department: "",
   status: "available",
-  schedule: "Mon-Fri, 08:00-17:00"
+  schedule: "Mon-Fri, 08:00-17:00",
+  approvalRequired: false,
+  maintenanceStatus: "available"
 };
 
 function createResourceId(name: string) {
@@ -71,17 +90,22 @@ export default function AdminResourcesPage() {
       name: resource.name,
       type: resource.type,
       location: resource.location,
+      building: resource.building,
+      floor: resource.floor,
       capacity: resource.capacity,
+      availableQuantity: resource.availableQuantity,
       department: resource.department,
       status: resource.status,
-      schedule: resource.schedule
+      schedule: resource.schedule,
+      approvalRequired: resource.approvalRequired,
+      maintenanceStatus: resource.maintenanceStatus
     });
     setEditingId(resource.id);
     setIsFormOpen(true);
   }
 
   function saveResource() {
-    if (!form.name.trim() || !form.location.trim() || !form.department.trim() || form.capacity < 1) {
+    if (!form.name.trim() || !form.building.trim() || !form.location.trim() || !form.department.trim() || form.capacity < 1) {
       return;
     }
 
@@ -93,8 +117,12 @@ export default function AdminResourcesPage() {
                 ...resource,
                 ...form,
                 capacity: Number(form.capacity),
+                availableQuantity: Number(form.availableQuantity),
+                isActive: form.maintenanceStatus === "available" ? resource.isActive : false,
                 color:
-                  form.status === "available"
+                  form.maintenanceStatus !== "available"
+                    ? "#FF4444"
+                    : form.status === "available"
                     ? "#00FF88"
                     : form.status === "pending"
                       ? "#FFAA00"
@@ -109,8 +137,9 @@ export default function AdminResourcesPage() {
           id: createResourceId(form.name),
           ...form,
           capacity: Number(form.capacity),
-          isActive: true,
-          color: "#00FF88",
+          availableQuantity: Number(form.availableQuantity),
+          isActive: form.maintenanceStatus === "available",
+          color: form.maintenanceStatus === "available" ? "#00FF88" : "#FF4444",
           utilization: 0
         },
         ...current
@@ -137,7 +166,24 @@ export default function AdminResourcesPage() {
 
   function activateResource(resourceId: string) {
     setManagedResources((current) =>
-      current.map((resource) => (resource.id === resourceId ? { ...resource, isActive: true } : resource))
+      current.map((resource) =>
+        resource.id === resourceId ? { ...resource, isActive: true, maintenanceStatus: "available" } : resource
+      )
+    );
+  }
+
+  function updateMaintenance(resourceId: string, maintenanceStatus: MaintenanceStatus) {
+    setManagedResources((current) =>
+      current.map((resource) =>
+        resource.id === resourceId
+          ? {
+              ...resource,
+              maintenanceStatus,
+              isActive: maintenanceStatus === "available",
+              status: maintenanceStatus === "available" ? resource.status : "booked"
+            }
+          : resource
+      )
     );
   }
 
@@ -146,7 +192,7 @@ export default function AdminResourcesPage() {
       active="/admin/resources"
       eyebrow="Admin resource management"
       title="Resources"
-      description="Create, edit, deactivate, and audit campus resources from the administrator workspace."
+      description="Create, edit, deactivate, and monitor campus resources, quantities, approvals, and maintenance status."
       actions={
         <button
           className="inline-flex min-h-11 items-center gap-2 rounded bg-signal-success px-4 text-sm font-bold text-ink-950 hover:bg-white"
@@ -161,7 +207,8 @@ export default function AdminResourcesPage() {
         {[
           ["Total", managedResources.length, "text-white"],
           ["Active", activeCount, "text-signal-success"],
-          ["Inactive", inactiveCount, "text-[#A0A0B8]"]
+          ["Inactive", inactiveCount, "text-[#A0A0B8]"],
+          ["Maintenance", managedResources.filter((resource) => resource.maintenanceStatus === "maintenance").length, "text-signal-warning"]
         ].map(([label, value, tone]) => (
           <div key={label} className="rounded-lg border border-white/10 bg-ink-900 p-4">
             <p className={cn("text-3xl font-black", tone)}>{value}</p>
@@ -260,6 +307,22 @@ export default function AdminResourcesPage() {
               </select>
             </label>
             <label className="grid gap-2 text-sm font-bold text-[#C9C9DA]">
+              Building
+              <input
+                className="min-h-11 rounded border border-white/10 bg-ink-850 px-3 text-white outline-none"
+                value={form.building}
+                onChange={(event) => setForm((current) => ({ ...current, building: event.target.value }))}
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-bold text-[#C9C9DA]">
+              Floor
+              <input
+                className="min-h-11 rounded border border-white/10 bg-ink-850 px-3 text-white outline-none"
+                value={form.floor}
+                onChange={(event) => setForm((current) => ({ ...current, floor: event.target.value }))}
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-bold text-[#C9C9DA]">
               Capacity
               <input
                 className="min-h-11 rounded border border-white/10 bg-ink-850 px-3 text-white outline-none"
@@ -267,6 +330,16 @@ export default function AdminResourcesPage() {
                 type="number"
                 value={form.capacity}
                 onChange={(event) => setForm((current) => ({ ...current, capacity: Number(event.target.value) }))}
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-bold text-[#C9C9DA]">
+              Available quantity
+              <input
+                className="min-h-11 rounded border border-white/10 bg-ink-850 px-3 text-white outline-none"
+                min={0}
+                type="number"
+                value={form.availableQuantity}
+                onChange={(event) => setForm((current) => ({ ...current, availableQuantity: Number(event.target.value) }))}
               />
             </label>
             <label className="grid gap-2 text-sm font-bold text-[#C9C9DA]">
@@ -299,6 +372,28 @@ export default function AdminResourcesPage() {
                 onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))}
               />
             </label>
+            <label className="grid gap-2 text-sm font-bold text-[#C9C9DA]">
+              Maintenance status
+              <select
+                className="min-h-11 rounded border border-white/10 bg-ink-850 px-3 text-white outline-none"
+                value={form.maintenanceStatus}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, maintenanceStatus: event.target.value as MaintenanceStatus }))
+                }
+              >
+                <option value="available">Available</option>
+                <option value="maintenance">Under Maintenance</option>
+                <option value="unavailable">Unavailable</option>
+              </select>
+            </label>
+            <label className="flex min-h-11 items-center gap-3 rounded border border-white/10 bg-ink-850 px-3 text-sm font-bold text-[#C9C9DA] md:mt-7">
+              <input
+                type="checkbox"
+                checked={form.approvalRequired}
+                onChange={(event) => setForm((current) => ({ ...current, approvalRequired: event.target.checked }))}
+              />
+              Approval required
+            </label>
             <label className="grid gap-2 text-sm font-bold text-[#C9C9DA] md:col-span-2">
               Schedule
               <input
@@ -329,21 +424,22 @@ export default function AdminResourcesPage() {
       ) : null}
 
       <section className="overflow-hidden rounded-lg border border-white/10 bg-ink-900">
-        <div className="hidden grid-cols-[1.4fr_120px_110px_100px_150px_1fr_120px_170px] gap-3 border-b border-white/10 px-4 py-3 text-xs font-black uppercase text-[#A0A0B8] xl:grid">
+        <div className="hidden grid-cols-[1.3fr_110px_100px_90px_120px_120px_120px_150px_180px] gap-3 border-b border-white/10 px-4 py-3 text-xs font-black uppercase text-[#A0A0B8] xl:grid">
           <span>Resource</span>
           <span>Type</span>
           <span>Status</span>
           <span>Capacity</span>
+          <span>Quantity</span>
           <span>Department</span>
-          <span>Location</span>
-          <span>Active</span>
+          <span>Building</span>
+          <span>Maintenance</span>
           <span>Actions</span>
         </div>
 
         {filteredResources.map((resource) => (
           <article
             key={resource.id}
-            className="grid gap-3 border-b border-white/10 px-4 py-4 last:border-b-0 xl:grid-cols-[1.4fr_120px_110px_100px_150px_1fr_120px_170px] xl:items-center"
+            className="grid gap-3 border-b border-white/10 px-4 py-4 last:border-b-0 xl:grid-cols-[1.3fr_110px_100px_90px_120px_120px_120px_150px_180px] xl:items-center"
           >
             <div>
               <h3 className="font-bold">{resource.name}</h3>
@@ -352,18 +448,18 @@ export default function AdminResourcesPage() {
             <p className="text-sm font-bold text-[#C9C9DA]">{titleCase(resource.type)}</p>
             <StatusBadge kind="resource" status={resource.status} />
             <p className="text-sm text-[#C9C9DA]">{resource.capacity}</p>
+            <p className="text-sm text-[#C9C9DA]">{resource.availableQuantity}</p>
             <p className="text-sm text-[#C9C9DA]">{resource.department}</p>
-            <p className="text-sm text-[#C9C9DA]">{resource.location}</p>
-            <span
-              className={cn(
-                "w-fit rounded border px-2 py-1 text-xs font-bold",
-                resource.isActive
-                  ? "border-signal-success/40 bg-signal-success/10 text-signal-success"
-                  : "border-white/10 bg-white/[0.03] text-[#A0A0B8]"
-              )}
+            <p className="text-sm text-[#C9C9DA]">{resource.building}, Floor {resource.floor}</p>
+            <select
+              className="min-h-10 rounded border border-white/10 bg-ink-850 px-2 text-sm font-bold text-white outline-none"
+              value={resource.maintenanceStatus}
+              onChange={(event) => updateMaintenance(resource.id, event.target.value as MaintenanceStatus)}
             >
-              {resource.isActive ? "Active" : "Inactive"}
-            </span>
+              <option value="available">Available</option>
+              <option value="maintenance">Maintenance</option>
+              <option value="unavailable">Unavailable</option>
+            </select>
             <div className="flex flex-wrap gap-2">
               <button
                 className="grid min-h-10 w-10 place-items-center rounded border border-white/10 bg-ink-850 hover:bg-white/5"

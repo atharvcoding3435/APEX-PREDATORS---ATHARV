@@ -4,18 +4,45 @@ export type ResourceType = "classroom" | "lab" | "auditorium" | "equipment" | "s
 
 export type BookingStatus = "pending" | "approved" | "active" | "completed" | "cancelled" | "rejected";
 
+export type MaintenanceStatus = "available" | "maintenance" | "unavailable";
+
 export type Resource = {
   id: string;
   name: string;
   type: ResourceType;
   location: string;
+  building: string;
+  floor: string;
   capacity: number;
+  availableQuantity: number;
   department: string;
   status: "available" | "pending" | "booked";
   isActive: boolean;
+  approvalRequired: boolean;
+  maintenanceStatus: MaintenanceStatus;
   color: string;
   schedule: string;
   utilization: number;
+};
+
+export type AdminUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  department: string;
+  isActive: boolean;
+  bookingCount: number;
+  lastActive: string;
+};
+
+export type ActivityLog = {
+  id: string;
+  actor: string;
+  action: string;
+  target: string;
+  time: string;
+  tone: "success" | "warning" | "danger" | "info";
 };
 
 export type Booking = {

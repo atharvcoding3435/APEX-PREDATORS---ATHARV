@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { bookings, getResource, resources } from "@/lib/mock-data";
+import { requireAdmin } from "@/lib/admin-utils";
 import {
   findBookingConflict,
   formatTimeRange,
@@ -18,6 +19,14 @@ const createBookingSchema = z.object({
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
   endTime: z.string().regex(/^\d{2}:\d{2}$/),
   purpose: z.string().min(5).max(200)
+});
+
+const updateBookingSchema = z.object({
+  id: z.string().min(1),
+  status: z.enum(["pending", "approved", "active", "completed", "cancelled", "rejected"]).optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  startTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  endTime: z.string().regex(/^\d{2}:\d{2}$/).optional()
 });
 
 function getRequestOriginDate(request: Request) {
@@ -105,4 +114,50 @@ export async function POST(request: Request) {
     },
     { status: 201 }
   );
+}
+
+export async function PATCH(request: Request) {
+  const forbidden = requireAdmin(request);
+
+  if (forbidden) {
+    return forbidden;
+  }
+
+  const body = await request.json().catch(() => null);
+  const parsed = updateBookingSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "INVALID_BOOKING_UPDATE",
+        message: "Booking update details are incomplete or invalid.",
+        issues: parsed.error.flatten().fieldErrors
+      },
+      { status: 400 }
+    );
+  }
+
+  const existingBooking = bookings.find((booking) => booking.id === parsed.data.id);
+
+  if (!existingBooking) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "BOOKING_NOT_FOUND",
+        message: "The requested booking could not be found."
+      },
+      { status: 404 }
+    );
+  }
+
+  const updatedBooking = {
+    ...existingBooking,
+    ...parsed.data
+  };
+
+  return NextResponse.json({
+    success: true,
+    data: updatedBooking
+  });
 }
