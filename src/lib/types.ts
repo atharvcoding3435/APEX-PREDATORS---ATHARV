@@ -2,7 +2,7 @@ export type UserRole = "student" | "faculty" | "admin";
 
 export type ResourceType = "classroom" | "lab" | "auditorium" | "equipment" | "sports";
 
-export type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled" | "rejected";
+export type BookingStatus = "pending" | "approved" | "active" | "completed" | "cancelled" | "rejected";
 
 export type Resource = {
   id: string;
@@ -29,7 +29,6 @@ export type Booking = {
   endTime: string;
   purpose: string;
   status: BookingStatus;
-  qrToken: string;
 };
 
 export type BookingRequest = {

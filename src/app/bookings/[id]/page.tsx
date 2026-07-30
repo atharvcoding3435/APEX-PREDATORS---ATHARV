@@ -10,7 +10,6 @@ import {
   ClipboardList,
   Clock3,
   MapPin,
-  QrCode,
   XCircle
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -25,15 +24,23 @@ function getStatusCopy(status: BookingStatus) {
     return {
       icon: Clock3,
       title: "Waiting for approval",
-      body: "This request is queued for faculty or admin review before the slot becomes confirmed."
+      body: "This request is queued for faculty or admin review before the slot becomes approved."
     };
   }
 
-  if (status === "confirmed") {
+  if (status === "approved") {
     return {
-      icon: QrCode,
-      title: "Ready for QR check-in",
-      body: "This booking is confirmed. The requester can use the QR token at the resource check-in station."
+      icon: CheckCircle2,
+      title: "Booking approved",
+      body: "This booking has been approved and is ready for use during the reserved time slot."
+    };
+  }
+
+  if (status === "active") {
+    return {
+      icon: CalendarClock,
+      title: "Booking active",
+      body: "This reservation is currently in progress for the approved time window."
     };
   }
 
@@ -68,7 +75,7 @@ export default function BookingDetailPage() {
   const resource = getBookingResource(booking);
   const statusCopy = getStatusCopy(booking.status);
   const StatusIcon = statusCopy.icon;
-  const canCancel = booking.status === "pending" || booking.status === "confirmed";
+  const canCancel = booking.status === "pending" || booking.status === "approved";
 
   const timeline = useMemo(() => {
     const events = [
@@ -87,28 +94,31 @@ export default function BookingDetailPage() {
       });
     }
 
-    if (originalBooking.status === "confirmed") {
+    if (originalBooking.status === "approved" || originalBooking.status === "active") {
       events.push({
-        title: "Booking confirmed",
-        body: "The slot was approved and the QR token became available.",
+        title: "Booking approved",
+        body: "The slot was approved for use.",
         tone: "text-signal-success"
       });
+    }
+
+    if (originalBooking.status === "active") {
       events.push({
-        title: "QR token generated",
-        body: originalBooking.qrToken,
+        title: "Booking active",
+        body: "The approved reservation is currently inside its scheduled time window.",
         tone: "text-signal-info"
       });
     }
 
     if (originalBooking.status === "completed") {
       events.push({
-        title: "Booking confirmed",
+        title: "Booking approved",
         body: "The slot was approved for use.",
         tone: "text-signal-success"
       });
       events.push({
-        title: "Checked in",
-        body: "The booking was marked completed at the check-in station.",
+        title: "Booking completed",
+        body: "The reservation finished and was retained for reporting.",
         tone: "text-signal-success"
       });
     }
@@ -122,14 +132,14 @@ export default function BookingDetailPage() {
     }
 
     return events;
-  }, [booking.date, booking.requester, booking.status, localStatus, originalBooking.qrToken, originalBooking.status, resource?.name]);
+  }, [booking.date, booking.requester, booking.status, localStatus, originalBooking.status, resource?.name]);
 
   return (
     <AppShell
       active="/bookings"
       eyebrow="Booking detail"
       title={resource?.name ?? "Booking detail"}
-      description="Review booking state, requester information, QR readiness, and audit-style lifecycle events."
+      description="Review booking state, requester information, resource details, and audit-style lifecycle events."
       actions={
         <Link
           href="/bookings"
@@ -207,18 +217,6 @@ export default function BookingDetailPage() {
         </section>
 
         <aside className="space-y-6">
-          <section className="rounded-lg border border-white/10 bg-ink-900 p-5">
-            <h3 className="text-xl font-black">QR readiness</h3>
-            <div className="mt-4 grid aspect-square max-h-80 place-items-center rounded-lg border border-white/10 bg-white">
-              <div className="grid h-44 w-44 place-items-center rounded border-8 border-ink-950 text-ink-950">
-                <QrCode size={104} aria-hidden="true" />
-              </div>
-            </div>
-            <p className="mt-4 break-all rounded border border-white/10 bg-ink-850 px-3 py-2 text-center text-sm font-bold text-[#C9C9DA]">
-              {booking.status === "confirmed" ? booking.qrToken : "Available after confirmation"}
-            </p>
-          </section>
-
           <section className="rounded-lg border border-white/10 bg-ink-900 p-5">
             <div className="mb-4 flex items-center gap-2">
               <ClipboardList size={20} className="text-signal-info" aria-hidden="true" />

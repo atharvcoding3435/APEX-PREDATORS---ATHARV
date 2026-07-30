@@ -20,7 +20,7 @@ export default function ProfilePage() {
         <article className="rounded-lg border border-white/10 bg-ink-900 p-5">
           <h3 className="text-xl font-black">Access</h3>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            {["Browse Resources", "Create Bookings", "QR Check-In"].map((permission) => (
+            {["Browse Resources", "Create Bookings", "View Booking History"].map((permission) => (
               <div key={permission} className="rounded border border-signal-success/30 bg-signal-success/10 p-3 text-sm font-bold text-signal-success">
                 {permission}
               </div>

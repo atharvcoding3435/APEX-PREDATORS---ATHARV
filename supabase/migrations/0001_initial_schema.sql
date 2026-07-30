@@ -32,7 +32,7 @@ create table if not exists public.bookings (
   id uuid primary key default gen_random_uuid(),
   resource_id uuid not null references public.resources(id),
   requester_id uuid not null references public.users(id),
-  status text not null default 'pending' check (status in ('pending', 'confirmed', 'completed', 'cancelled')),
+  status text not null default 'pending' check (status in ('pending', 'approved', 'active', 'completed', 'cancelled', 'rejected')),
   date date not null,
   start_time time not null,
   end_time time not null,
@@ -40,9 +40,6 @@ create table if not exists public.bookings (
   waitlist_position integer check (waitlist_position > 0),
   waitlist_offered_at timestamptz,
   waitlist_expires_at timestamptz,
-  checkin_token uuid unique default gen_random_uuid(),
-  checked_in_at timestamptz,
-  qr_code_url text,
   cancelled_reason text,
   notes text,
   created_by uuid not null references public.users(id),
@@ -60,7 +57,7 @@ create table if not exists public.waitlist (
   start_time time not null,
   end_time time not null,
   position integer not null check (position > 0),
-  status text not null default 'waiting' check (status in ('waiting', 'offered', 'expired', 'confirmed')),
+  status text not null default 'waiting' check (status in ('waiting', 'offered', 'expired', 'approved')),
   offered_at timestamptz,
   expires_at timestamptz,
   created_at timestamptz not null default now(),
@@ -103,7 +100,7 @@ begin
     select 1 from public.bookings
     where resource_id = new.resource_id
       and date = new.date
-      and status in ('pending', 'confirmed')
+      and status in ('pending', 'approved', 'active')
       and start_time < new.end_time
       and end_time > new.start_time
   ) then
@@ -143,17 +140,6 @@ begin
 end;
 $$ language plpgsql;
 
-create or replace function public.invalidate_checkin_token()
-returns trigger as $$
-begin
-  if new.status = 'completed' and old.status <> 'completed' then
-    new.checkin_token = null;
-  end if;
-
-  return new;
-end;
-$$ language plpgsql;
-
 drop trigger if exists trg_bookings_conflict_check on public.bookings;
 create trigger trg_bookings_conflict_check
   before insert on public.bookings
@@ -163,11 +149,6 @@ drop trigger if exists trg_bookings_waitlist_process on public.bookings;
 create trigger trg_bookings_waitlist_process
   after update on public.bookings
   for each row execute function public.process_waitlist();
-
-drop trigger if exists trg_bookings_invalidate_token on public.bookings;
-create trigger trg_bookings_invalidate_token
-  before update on public.bookings
-  for each row execute function public.invalidate_checkin_token();
 
 drop trigger if exists trg_update_timestamps_users on public.users;
 create trigger trg_update_timestamps_users
@@ -218,7 +199,7 @@ create policy "Users create own bookings" on public.bookings
   for insert with check (requester_id = auth.uid());
 
 create policy "Users update own bookings" on public.bookings
-  for update using (requester_id = auth.uid() and status in ('pending', 'confirmed'));
+  for update using (requester_id = auth.uid() and status in ('pending', 'approved'));
 
 create policy "Admins update any booking" on public.bookings
   for update using (

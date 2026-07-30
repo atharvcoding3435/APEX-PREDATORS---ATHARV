@@ -4,7 +4,6 @@ import {
   CalendarDays,
   ClipboardCheck,
   LayoutDashboard,
-  QrCode,
   ShieldCheck,
   UserCircle,
   Users,
@@ -16,7 +15,6 @@ const userNavItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/resources", icon: UsersRound, label: "Resources" },
   { href: "/bookings", icon: CalendarDays, label: "Bookings" },
-  { href: "/checkin", icon: QrCode, label: "Check-in" },
   { href: "/profile", icon: UserCircle, label: "Profile" }
 ];
 

@@ -10,7 +10,7 @@ export default function PendingApprovalsPage() {
       active="/admin/pending"
       eyebrow="Approval workflow"
       title="Pending approvals"
-      description="Approve or reject requests that need faculty or admin review before a slot is confirmed."
+      description="Approve or reject requests that need faculty or admin review before a slot is reserved."
     >
       <section className="grid gap-4">
         {pending.map((booking) => {

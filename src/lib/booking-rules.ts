@@ -1,6 +1,6 @@
 import type { Booking, BookingAlternative, BookingRequest, BookingStatus, Resource, UserRole } from "@/lib/types";
 
-export const ACTIVE_BOOKING_STATUSES: BookingStatus[] = ["pending", "confirmed"];
+export const ACTIVE_BOOKING_STATUSES: BookingStatus[] = ["pending", "approved", "active"];
 export const MAX_BOOKING_DURATION_MINUTES = 240;
 const SLOT_STEP_MINUTES = 30;
 const BUSINESS_OPEN = "08:00";
@@ -114,15 +114,15 @@ export function getSlotStatus(input: ConflictInput, existingBookings: Booking[],
 
 export function getDefaultBookingStatus(role: UserRole, resource?: Resource) {
   if (role === "admin") {
-    return "confirmed";
+    return "approved";
   }
 
   if (role === "faculty" && resource?.department === "Computer Science") {
-    return "confirmed";
+    return "approved";
   }
 
   if (role === "student" && resource?.type === "classroom") {
-    return "confirmed";
+    return "approved";
   }
 
   return "pending";

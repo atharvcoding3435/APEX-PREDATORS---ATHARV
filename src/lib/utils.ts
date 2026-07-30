@@ -26,7 +26,7 @@ export function resourceStatusTone(status: Resource["status"]) {
 }
 
 export function bookingStatusTone(status: BookingStatus) {
-  if (status === "confirmed") {
+  if (status === "approved" || status === "active") {
     return "bg-signal-success/15 text-signal-success";
   }
 

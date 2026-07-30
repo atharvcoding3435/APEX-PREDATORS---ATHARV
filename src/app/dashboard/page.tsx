@@ -8,7 +8,8 @@ import { bookings, getBookingResource, resources, waitlist } from "@/lib/mock-da
 export default function DashboardPage() {
   const availableCount = resources.filter((resource) => resource.status === "available").length;
   const pendingCount = bookings.filter((booking) => booking.status === "pending").length;
-  const confirmedCount = bookings.filter((booking) => booking.status === "confirmed").length;
+  const approvedCount = bookings.filter((booking) => booking.status === "approved").length;
+  const activeCount = bookings.filter((booking) => booking.status === "active").length;
 
   return (
     <AppShell
@@ -28,11 +29,12 @@ export default function DashboardPage() {
         </div>
       }
     >
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         {[
           ["Available", availableCount, "text-signal-success"],
           ["Pending", pendingCount, "text-signal-warning"],
-          ["Confirmed", confirmedCount, "text-signal-info"],
+          ["Approved", approvedCount, "text-signal-info"],
+          ["Active", activeCount, "text-signal-success"],
           ["Waitlist", waitlist.length, "text-white"]
         ].map(([label, value, tone]) => (
           <div key={label} className="rounded-lg border border-white/10 bg-ink-850 p-4">
@@ -79,7 +81,7 @@ export default function DashboardPage() {
                         {booking.startTime} - {booking.endTime} · {booking.requester}
                       </p>
                     </div>
-                    {booking.status === "confirmed" ? (
+                    {booking.status === "approved" || booking.status === "active" ? (
                       <CheckCircle2 className="text-signal-success" size={19} aria-hidden="true" />
                     ) : (
                       <Clock3 className="text-signal-warning" size={19} aria-hidden="true" />

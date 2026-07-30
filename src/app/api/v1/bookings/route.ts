@@ -100,8 +100,7 @@ export async function POST(request: Request) {
       data: {
         id: `preview-${Date.now()}`,
         ...parsed.data,
-        status: getDefaultBookingStatus(parsed.data.requesterRole, resource),
-        qrToken: "generated-after-confirmation"
+        status: getDefaultBookingStatus(parsed.data.requesterRole, resource)
       }
     },
     { status: 201 }

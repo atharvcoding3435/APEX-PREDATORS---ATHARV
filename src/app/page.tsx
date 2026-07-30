@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, CalendarCheck, LockKeyhole, QrCode, UsersRound } from "lucide-react";
+import { ArrowRight, BarChart3, CalendarCheck, LockKeyhole, UsersRound } from "lucide-react";
 
 const signals = [
   { label: "Live resources", value: "24", tone: "text-signal-info" },
@@ -12,7 +12,7 @@ const features = [
   {
     icon: CalendarCheck,
     title: "Live availability",
-    copy: "A calendar-first view shows free, pending, and confirmed slots across classrooms, labs, auditoriums, and equipment."
+    copy: "A calendar-first view shows free, pending, approved, and active slots across classrooms, labs, auditoriums, and equipment."
   },
   {
     icon: LockKeyhole,
@@ -25,9 +25,9 @@ const features = [
     copy: "Students request slots, faculty approve department bookings, and admins manage resources, audits, and utilization."
   },
   {
-    icon: QrCode,
-    title: "QR check-in",
-    copy: "Confirmed bookings expose a single-use QR check-in path for physical attendance and audit tracking."
+    icon: BarChart3,
+    title: "Booking insights",
+    copy: "Dashboards surface utilization, pending approvals, active bookings, and waitlist demand for better planning."
   }
 ];
 
@@ -59,7 +59,7 @@ export default function Home() {
             </h2>
             <p className="mt-6 max-w-2xl text-lg text-[#C9C9DA]">
               A dark, real-time booking workspace for classrooms, labs, equipment, and halls with approvals,
-              waitlists, QR check-in, and audit trails built into the flow.
+              waitlists, lifecycle tracking, and audit trails built into the flow.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link

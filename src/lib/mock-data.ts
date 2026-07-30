@@ -92,8 +92,7 @@ export const bookings: Booking[] = [
     startTime: "09:00",
     endTime: "11:00",
     purpose: "Project demo rehearsal",
-    status: "confirmed",
-    qrToken: "RSFY-BK-2041"
+    status: "approved"
   },
   {
     id: "bk-2042",
@@ -105,8 +104,7 @@ export const bookings: Booking[] = [
     startTime: "12:00",
     endTime: "14:00",
     purpose: "Machine learning practical",
-    status: "pending",
-    qrToken: "RSFY-BK-2042"
+    status: "pending"
   },
   {
     id: "bk-2043",
@@ -118,8 +116,7 @@ export const bookings: Booking[] = [
     startTime: "15:00",
     endTime: "16:00",
     purpose: "Department orientation",
-    status: "completed",
-    qrToken: "RSFY-BK-2043"
+    status: "completed"
   }
 ];
 

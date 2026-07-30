@@ -44,7 +44,7 @@ type ConflictResponse = {
     startTime: string;
     endTime: string;
     timeRange: string;
-    status: "pending" | "confirmed";
+    status: "pending" | "approved" | "active";
   };
   suggestions: BookingAlternative[];
 };
@@ -368,7 +368,7 @@ export default function NewBookingPage() {
                 <p className="mt-1 text-sm text-[#C9C9DA]">
                   {slotStatus === "available"
                     ? "This slot is clear against active bookings. Supabase Realtime will refresh this status when connected."
-                    : "Active pending and confirmed bookings block this selection."}
+                    : "Pending, approved, and active bookings block this selection."}
                 </p>
               </div>
             </div>
@@ -461,7 +461,7 @@ export default function NewBookingPage() {
                   <StatusBadge kind="booking" status={status} />
                 </div>
                 <p className="mt-3 text-sm text-[#A0A0B8]">
-                  Admins auto-confirm. Faculty bookings for Computer Science auto-confirm. Student classroom bookings auto-confirm; other requests stay pending.
+                  Admins auto-approve. Faculty bookings for Computer Science auto-approve. Student classroom bookings auto-approve; other requests stay pending.
                 </p>
               </div>
             </div>
@@ -484,10 +484,6 @@ export default function NewBookingPage() {
                 <div className="flex justify-between gap-4">
                   <dt className="text-[#A0A0B8]">Requester</dt>
                   <dd className="text-right font-bold">{preview.requester}</dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-[#A0A0B8]">QR token</dt>
-                  <dd className="text-right font-bold">{preview.qrToken}</dd>
                 </div>
               </dl>
             </section>
