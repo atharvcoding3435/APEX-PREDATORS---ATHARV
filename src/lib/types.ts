@@ -12,6 +12,7 @@ export type Resource = {
   capacity: number;
   department: string;
   status: "available" | "pending" | "booked";
+  isActive: boolean;
   color: string;
   schedule: string;
   utilization: number;

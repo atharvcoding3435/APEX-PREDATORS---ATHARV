@@ -9,6 +9,7 @@ export const resources: Resource[] = [
     capacity: 40,
     department: "Computer Science",
     status: "pending",
+    isActive: true,
     color: "#FFAA00",
     schedule: "Mon-Fri, 08:00-18:00",
     utilization: 74
@@ -21,6 +22,7 @@ export const resources: Resource[] = [
     capacity: 220,
     department: "Administration",
     status: "booked",
+    isActive: true,
     color: "#FF4444",
     schedule: "Mon-Sat, 09:00-20:00",
     utilization: 86
@@ -33,6 +35,7 @@ export const resources: Resource[] = [
     capacity: 1,
     department: "Shared",
     status: "available",
+    isActive: true,
     color: "#00FF88",
     schedule: "Mon-Fri, 08:00-17:00",
     utilization: 43
@@ -45,6 +48,7 @@ export const resources: Resource[] = [
     capacity: 32,
     department: "Humanities",
     status: "available",
+    isActive: true,
     color: "#0088FF",
     schedule: "Mon-Fri, 10:00-19:00",
     utilization: 51
@@ -57,6 +61,7 @@ export const resources: Resource[] = [
     capacity: 24,
     department: "Physical Education",
     status: "available",
+    isActive: true,
     color: "#00FF88",
     schedule: "Mon-Sat, 06:00-21:00",
     utilization: 39
@@ -69,6 +74,7 @@ export const resources: Resource[] = [
     capacity: 60,
     department: "Electronics",
     status: "booked",
+    isActive: false,
     color: "#FF4444",
     schedule: "Mon-Fri, 08:00-17:00",
     utilization: 68

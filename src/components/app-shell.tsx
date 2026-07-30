@@ -1,40 +1,57 @@
 import Link from "next/link";
 import {
+  BarChart3,
   CalendarDays,
   ClipboardCheck,
   LayoutDashboard,
   QrCode,
   ShieldCheck,
+  UserCircle,
+  Users,
   UsersRound
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navItems = [
+const userNavItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/resources", icon: UsersRound, label: "Resources" },
   { href: "/bookings", icon: CalendarDays, label: "Bookings" },
-  { href: "/admin/pending", icon: ShieldCheck, label: "Approvals" },
   { href: "/checkin", icon: QrCode, label: "Check-in" },
-  { href: "/admin/audit", icon: ClipboardCheck, label: "Audit" }
+  { href: "/profile", icon: UserCircle, label: "Profile" }
+];
+
+const adminNavItems = [
+  { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/admin/resources", icon: UsersRound, label: "Resources" },
+  { href: "/admin/users", icon: Users, label: "Users" },
+  { href: "/admin/pending", icon: ShieldCheck, label: "Pending Approvals" },
+  { href: "/admin/audit", icon: ClipboardCheck, label: "Audit Logs" },
+  { href: "/admin/analytics", icon: BarChart3, label: "Analytics" }
 ];
 
 type AppShellProps = {
   active: string;
   title: string;
   eyebrow: string;
+  variant?: "user" | "admin";
   description?: string;
   actions?: React.ReactNode;
   children: React.ReactNode;
 };
 
-export function AppShell({ active, title, eyebrow, description, actions, children }: AppShellProps) {
+export function AppShell({ active, title, eyebrow, variant, description, actions, children }: AppShellProps) {
+  const isAdmin = variant === "admin" || active.startsWith("/admin");
+  const navItems = isAdmin ? adminNavItems : userNavItems;
+  const consoleTitle = isAdmin ? "Admin Console" : "CRMP Console";
+  const homeHref = isAdmin ? "/admin" : "/dashboard";
+
   return (
     <main className="min-h-screen bg-ink-950 pb-20 text-white lg:pb-0">
       <div className="grid min-h-screen lg:grid-cols-[260px_1fr]">
         <aside className="hidden border-r border-white/10 bg-ink-900 px-4 py-6 lg:block">
           <div className="mb-8">
             <p className="text-xs font-bold uppercase text-signal-success">Resourcify</p>
-            <h1 className="mt-1 text-xl font-black">CRMP Console</h1>
+            <h1 className="mt-1 text-xl font-black">{consoleTitle}</h1>
           </div>
           <nav className="space-y-1">
             {navItems.map((item) => (
@@ -57,9 +74,9 @@ export function AppShell({ active, title, eyebrow, description, actions, childre
 
         <section className="min-w-0 px-4 py-5 sm:px-6 lg:px-8">
           <div className="mb-5 flex items-center justify-between border-b border-white/10 pb-4 lg:hidden">
-            <Link href="/dashboard" className="block">
+            <Link href={homeHref} className="block">
               <p className="text-xs font-bold uppercase text-signal-success">Resourcify</p>
-              <p className="font-black">CRMP Console</p>
+              <p className="font-black">{consoleTitle}</p>
             </Link>
             <span className="rounded border border-white/10 bg-ink-850 px-3 py-1 text-xs font-bold text-[#C9C9DA]">
               Team Preview
@@ -79,7 +96,7 @@ export function AppShell({ active, title, eyebrow, description, actions, childre
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-ink-900/95 px-2 py-2 backdrop-blur lg:hidden">
-        <div className="grid grid-cols-6 gap-1">
+        <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}>
           {navItems.map((item) => (
             <Link
               key={item.href}
