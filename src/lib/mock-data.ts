@@ -48,6 +48,30 @@ export const resources: Resource[] = [
     color: "#0088FF",
     schedule: "Mon-Fri, 10:00-19:00",
     utilization: 51
+  },
+  {
+    id: "court-02",
+    name: "Indoor Court 02",
+    type: "sports",
+    location: "Sports Complex",
+    capacity: 24,
+    department: "Physical Education",
+    status: "available",
+    color: "#00FF88",
+    schedule: "Mon-Sat, 06:00-21:00",
+    utilization: 39
+  },
+  {
+    id: "room-305",
+    name: "Lecture Room 305",
+    type: "classroom",
+    location: "Academic Block, Floor 3",
+    capacity: 60,
+    department: "Electronics",
+    status: "booked",
+    color: "#FF4444",
+    schedule: "Mon-Fri, 08:00-17:00",
+    utilization: 68
   }
 ];
 
