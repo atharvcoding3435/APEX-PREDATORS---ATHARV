@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { isUserRole } from "@/lib/roles";
@@ -5,6 +6,7 @@ import { createServiceSupabaseClient, isSupabaseServiceConfigured } from "@/lib/
 import type { AdminUser, UserRole } from "@/lib/types";
 
 export const accessTokenCookie = "resourcify-access-token";
+export const appSessionCookie = "resourcify-app-session";
 
 type AuthProfileRow = {
   id: string;
@@ -28,6 +30,47 @@ function getBearerToken(request: Request) {
   const match = rawCookie.match(new RegExp(`${accessTokenCookie}=([^;]+)`));
 
   return match ? decodeURIComponent(match[1]) : null;
+}
+
+function getRequestCookie(request: Request, name: string) {
+  const rawCookie = request.headers.get("cookie") ?? "";
+  const match = rawCookie.match(new RegExp(`${name}=([^;]+)`));
+
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function getSessionSecret() {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "resourcify-dev-session";
+}
+
+function signUserId(userId: string) {
+  return createHmac("sha256", getSessionSecret()).update(userId).digest("hex");
+}
+
+export function createSignedAppSession(userId: string) {
+  return `${userId}.${signUserId(userId)}`;
+}
+
+function verifySignedAppSession(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const [userId, signature] = value.split(".");
+
+  if (!userId || !signature) {
+    return null;
+  }
+
+  const expected = signUserId(userId);
+  const signatureBuffer = Buffer.from(signature, "hex");
+  const expectedBuffer = Buffer.from(expected, "hex");
+
+  if (signatureBuffer.length !== expectedBuffer.length || !timingSafeEqual(signatureBuffer, expectedBuffer)) {
+    return null;
+  }
+
+  return userId;
 }
 
 function mapProfile(row: AuthProfileRow): AdminUser {
@@ -80,12 +123,28 @@ export async function getAuthenticatedUserFromToken(token: string | null) {
 }
 
 export async function getAuthenticatedUserFromRequest(request: Request) {
-  return getAuthenticatedUserFromToken(getBearerToken(request));
+  const tokenUser = await getAuthenticatedUserFromToken(getBearerToken(request));
+
+  if (tokenUser) {
+    return tokenUser;
+  }
+
+  const userId = verifySignedAppSession(getRequestCookie(request, appSessionCookie));
+
+  return userId ? getProfileForUser(userId) : null;
 }
 
 export async function getAuthenticatedUserFromCookies() {
   const token = cookies().get(accessTokenCookie)?.value ?? null;
-  return getAuthenticatedUserFromToken(token);
+  const tokenUser = await getAuthenticatedUserFromToken(token);
+
+  if (tokenUser) {
+    return tokenUser;
+  }
+
+  const userId = verifySignedAppSession(cookies().get(appSessionCookie)?.value ?? null);
+
+  return userId ? getProfileForUser(userId) : null;
 }
 
 export async function requireAdmin(request: Request) {

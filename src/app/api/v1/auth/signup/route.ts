@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { accessTokenCookie, getProfileForUser } from "@/lib/auth";
+import { accessTokenCookie, appSessionCookie, createSignedAppSession, getProfileForUser } from "@/lib/auth";
 import { publicSignupRoles } from "@/lib/roles";
 import { createAnonSupabaseClient, createServiceSupabaseClient } from "@/lib/supabase";
 
@@ -149,16 +149,20 @@ export async function POST(request: Request) {
   });
 
   if (loginError || !sessionData.session?.access_token) {
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: await getProfileForUser(authUser.userId, parsed.data.email),
-      message: "Account created. Please sign in with your new credentials."
+      message: "Account is ready."
     });
+    response.cookies.set(appSessionCookie, createSignedAppSession(authUser.userId), cookieOptions);
+
+    return response;
   }
 
   const profile = await getProfileForUser(authUser.userId, parsed.data.email);
   const response = NextResponse.json({ success: true, data: profile });
   response.cookies.set(accessTokenCookie, sessionData.session.access_token, cookieOptions);
+  response.cookies.set(appSessionCookie, createSignedAppSession(authUser.userId), cookieOptions);
 
   return response;
 }

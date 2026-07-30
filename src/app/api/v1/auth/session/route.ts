@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { accessTokenCookie, getAuthenticatedUserFromRequest } from "@/lib/auth";
+import { accessTokenCookie, appSessionCookie, getAuthenticatedUserFromRequest } from "@/lib/auth";
 
 const sessionSchema = z.object({
   accessToken: z.string().min(20)
@@ -54,6 +54,7 @@ export async function POST(request: Request) {
 export function DELETE() {
   const response = NextResponse.json({ success: true });
   response.cookies.set(accessTokenCookie, "", { ...cookieOptions, maxAge: 0 });
+  response.cookies.set(appSessionCookie, "", { ...cookieOptions, maxAge: 0 });
 
   return response;
 }

@@ -20,6 +20,7 @@ function LoginForm() {
   const [role, setRole] = useState<UserRole>("student");
   const [department, setDepartment] = useState("Computer Science");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
   const nextPath = searchParams.get("next") || "/dashboard";
   const isSignup = mode === "signup";
@@ -27,6 +28,7 @@ function LoginForm() {
   async function submitLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setNotice("");
     setLoading(true);
 
     const controller = new AbortController();
@@ -44,6 +46,10 @@ function LoginForm() {
       if (!response.ok) {
         setError(payload?.message ?? "Unable to sign in with these credentials.");
         return;
+      }
+
+      if (payload?.message) {
+        setNotice(payload.message);
       }
 
       router.push(isSignup && nextPath.startsWith("/admin") ? "/dashboard" : nextPath);
@@ -88,6 +94,7 @@ function LoginForm() {
                 onClick={() => {
                   setMode(item);
                   setError("");
+                  setNotice("");
                 }}
                 type="button"
               >
@@ -163,6 +170,12 @@ function LoginForm() {
           {error ? (
             <div className="rounded border border-signal-danger/30 bg-signal-danger/10 p-3 text-sm font-bold text-signal-danger" role="alert">
               {error}
+            </div>
+          ) : null}
+
+          {notice ? (
+            <div className="rounded border border-signal-success/30 bg-signal-success/10 p-3 text-sm font-bold text-signal-success" role="status">
+              {notice}
             </div>
           ) : null}
 
