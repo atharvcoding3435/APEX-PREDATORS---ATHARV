@@ -8,7 +8,7 @@
 
 - `id uuid primary key`
 - `email text unique not null`
-- `role text check role in admin/faculty/student`
+- `role text check role in admin/faculty/student/club/guest`
 - `name text not null`
 - `department text not null`
 - `avatar_url text`

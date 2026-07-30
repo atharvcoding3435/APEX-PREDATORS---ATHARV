@@ -3,7 +3,7 @@ create extension if not exists "pgcrypto";
 create table if not exists public.users (
   id uuid primary key default gen_random_uuid(),
   email text not null unique,
-  role text not null check (role in ('admin', 'faculty', 'student')),
+  role text not null check (role in ('admin', 'faculty', 'student', 'club', 'guest')),
   name text not null,
   department text not null default 'unassigned',
   avatar_url text,

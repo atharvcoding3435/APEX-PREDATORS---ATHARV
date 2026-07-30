@@ -3,6 +3,7 @@ import { z } from "zod";
 import { bookings, getResource, resources } from "@/lib/mock-data";
 import { requireAdmin } from "@/lib/auth";
 import { getBookingsData } from "@/lib/data";
+import { userRoles } from "@/lib/roles";
 import { isSupabaseServiceConfigured } from "@/lib/supabase";
 import {
   findBookingConflict,
@@ -11,11 +12,12 @@ import {
   suggestBookingAlternatives,
   validateBookingRequest
 } from "@/lib/booking-rules";
+import type { UserRole } from "@/lib/types";
 
 const createBookingSchema = z.object({
   resourceId: z.string().min(1),
   requester: z.string().min(2),
-  requesterRole: z.enum(["student", "faculty", "admin"]).default("student"),
+  requesterRole: z.enum(userRoles as [string, ...string[]]).default("student"),
   department: z.string().min(2),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
@@ -114,7 +116,7 @@ export async function POST(request: Request) {
       data: {
         id: `preview-${Date.now()}`,
         ...parsed.data,
-        status: getDefaultBookingStatus(parsed.data.requesterRole, resource)
+        status: getDefaultBookingStatus(parsed.data.requesterRole as UserRole, resource)
       }
     },
     { status: 201 }

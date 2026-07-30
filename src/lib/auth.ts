@@ -1,11 +1,10 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { isUserRole } from "@/lib/roles";
 import { createServiceSupabaseClient, isSupabaseServiceConfigured } from "@/lib/supabase";
 import type { AdminUser, UserRole } from "@/lib/types";
 
 export const accessTokenCookie = "resourcify-access-token";
-
-const roles: UserRole[] = ["student", "faculty", "admin"];
 
 type AuthProfileRow = {
   id: string;
@@ -32,7 +31,7 @@ function getBearerToken(request: Request) {
 }
 
 function mapProfile(row: AuthProfileRow): AdminUser {
-  const role = roles.includes(row.role as UserRole) ? (row.role as UserRole) : "student";
+  const role = isUserRole(String(row.role)) ? (row.role as UserRole) : "student";
 
   return {
     id: row.id,

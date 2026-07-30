@@ -26,6 +26,7 @@ import {
   validateBookingRequest
 } from "@/lib/booking-rules";
 import { bookings, getBookingResource, resources } from "@/lib/mock-data";
+import { publicSignupRoles } from "@/lib/roles";
 import type { Booking, BookingAlternative, UserRole } from "@/lib/types";
 import { cn, titleCase } from "@/lib/utils";
 
@@ -49,7 +50,7 @@ type ConflictResponse = {
   suggestions: BookingAlternative[];
 };
 
-const roleOptions: UserRole[] = ["student", "faculty", "admin"];
+const roleOptions: UserRole[] = publicSignupRoles;
 const slotStarts = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
 
 function getSlotClass(status: string, isSelected: boolean) {

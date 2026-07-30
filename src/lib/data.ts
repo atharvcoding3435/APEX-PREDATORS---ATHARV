@@ -1,5 +1,6 @@
 import { createServiceSupabaseClient, isSupabaseServiceConfigured } from "@/lib/supabase";
 import { activityLogs, bookings as mockBookings, resources as mockResources, users as mockUsers } from "@/lib/mock-data";
+import { isUserRole } from "@/lib/roles";
 import type { ActivityLog, AdminUser, Booking, BookingStatus, MaintenanceStatus, Resource, ResourceType, UserRole } from "@/lib/types";
 
 type DbResource = Record<string, unknown>;
@@ -95,7 +96,7 @@ function mapUser(row: DbUser, bookingCount = 0): AdminUser {
     id: asString(row.id),
     name: asString(row.name, "Campus User"),
     email: asString(row.email, "user@campus.edu"),
-    role: role === "admin" || role === "faculty" || role === "student" ? role : "student",
+    role: isUserRole(role) ? role : "student",
     department: asString(row.department, "Unassigned"),
     isActive: asBoolean(row.is_active ?? row.isActive, true),
     bookingCount,

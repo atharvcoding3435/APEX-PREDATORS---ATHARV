@@ -3,12 +3,13 @@
 import { useMemo, useState } from "react";
 import { Eye, Power, Search } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { userRoles } from "@/lib/roles";
 import type { AdminUser, Booking, UserRole } from "@/lib/types";
 import { cn, titleCase } from "@/lib/utils";
 
 type RoleFilter = "all" | UserRole;
 
-const roleFilters: RoleFilter[] = ["all", "student", "faculty", "admin"];
+const roleFilters: RoleFilter[] = ["all", ...userRoles];
 
 export function AdminUsersClient({ initialUsers, bookings }: { initialUsers: AdminUser[]; bookings: Booking[] }) {
   const [users, setUsers] = useState<AdminUser[]>(initialUsers);

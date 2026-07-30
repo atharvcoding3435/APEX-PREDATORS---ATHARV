@@ -1,4 +1,4 @@
-export type UserRole = "student" | "faculty" | "admin";
+export type UserRole = "student" | "faculty" | "club" | "guest" | "admin";
 
 export type ResourceType = "classroom" | "lab" | "auditorium" | "equipment" | "sports";
 
