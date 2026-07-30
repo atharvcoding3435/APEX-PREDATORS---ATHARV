@@ -64,7 +64,7 @@ function LoginForm() {
           <h1 className="mt-2 text-3xl font-black">{isSignup ? "Create your account" : "Sign in to continue"}</h1>
           <p className="mt-3 text-sm leading-6 text-[#A0A0B8]">
             {isSignup
-              ? "Create a Supabase email/password account for student, faculty, club, or guest access."
+              ? "Create a Supabase email/password account, or finish setup for an email already added in Supabase."
               : "Use your Supabase email and password account. Magic links are intentionally disabled for this MVP sprint."}
           </p>
           <div className="mt-8 rounded border border-signal-info/30 bg-signal-info/10 p-4">

@@ -20,6 +20,73 @@ const cookieOptions = {
   maxAge: 60 * 60 * 24 * 7
 };
 
+async function findAuthUserByEmail(email: string) {
+  const supabase = createServiceSupabaseClient();
+  const normalizedEmail = email.trim().toLowerCase();
+
+  for (let page = 1; page <= 10; page += 1) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+
+    if (error) {
+      throw error;
+    }
+
+    const user = data.users.find((item) => item.email?.toLowerCase() === normalizedEmail);
+
+    if (user || data.users.length < 1000) {
+      return user ?? null;
+    }
+  }
+
+  return null;
+}
+
+async function createOrRepairAuthUser(input: z.infer<typeof signupSchema>) {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase.auth.admin.createUser({
+    email: input.email,
+    password: input.password,
+    email_confirm: true,
+    user_metadata: {
+      name: input.name,
+      role: input.role,
+      department: input.department
+    }
+  });
+
+  if (!error && data.user) {
+    return { userId: data.user.id, created: true };
+  }
+
+  const existingUser = await findAuthUserByEmail(input.email);
+
+  if (!existingUser) {
+    throw new Error(error?.message ?? "Unable to create this account.");
+  }
+
+  const existingProfile = await getProfileForUser(existingUser.id, existingUser.email);
+
+  if (existingProfile?.role === "admin") {
+    throw new Error("Admin accounts cannot be repaired from public signup. Use the existing admin password or update it in Supabase.");
+  }
+
+  const { error: updateError } = await supabase.auth.admin.updateUserById(existingUser.id, {
+    password: input.password,
+    email_confirm: true,
+    user_metadata: {
+      name: input.name,
+      role: input.role,
+      department: input.department
+    }
+  });
+
+  if (updateError) {
+    throw updateError;
+  }
+
+  return { userId: existingUser.id, created: false };
+}
+
 export async function POST(request: Request) {
   const parsed = signupSchema.safeParse(await request.json().catch(() => null));
 
@@ -35,30 +102,23 @@ export async function POST(request: Request) {
   }
 
   const supabase = createServiceSupabaseClient();
-  const { data, error } = await supabase.auth.admin.createUser({
-    email: parsed.data.email,
-    password: parsed.data.password,
-    email_confirm: true,
-    user_metadata: {
-      name: parsed.data.name,
-      role: parsed.data.role,
-      department: parsed.data.department
-    }
-  });
+  let authUser: { userId: string; created: boolean };
 
-  if (error || !data.user) {
+  try {
+    authUser = await createOrRepairAuthUser(parsed.data);
+  } catch (error) {
     return NextResponse.json(
       {
         success: false,
         error: "SIGNUP_FAILED",
-        message: error?.message ?? "Unable to create this account."
+        message: error instanceof Error ? error.message : "Unable to create this account."
       },
       { status: 400 }
     );
   }
 
   const { error: profileError } = await supabase.from("users").upsert({
-    id: data.user.id,
+    id: authUser.userId,
     name: parsed.data.name,
     email: parsed.data.email,
     role: parsed.data.role,
@@ -66,7 +126,9 @@ export async function POST(request: Request) {
   });
 
   if (profileError) {
-    await supabase.auth.admin.deleteUser(data.user.id);
+    if (authUser.created) {
+      await supabase.auth.admin.deleteUser(authUser.userId);
+    }
 
     return NextResponse.json(
       {
@@ -89,12 +151,12 @@ export async function POST(request: Request) {
   if (loginError || !sessionData.session?.access_token) {
     return NextResponse.json({
       success: true,
-      data: await getProfileForUser(data.user.id, parsed.data.email),
+      data: await getProfileForUser(authUser.userId, parsed.data.email),
       message: "Account created. Please sign in with your new credentials."
     });
   }
 
-  const profile = await getProfileForUser(data.user.id, parsed.data.email);
+  const profile = await getProfileForUser(authUser.userId, parsed.data.email);
   const response = NextResponse.json({ success: true, data: profile });
   response.cookies.set(accessTokenCookie, sessionData.session.access_token, cookieOptions);
 

@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       {
         success: false,
         error: "INVALID_CREDENTIALS",
-        message: error?.message ?? "Unable to sign in with these credentials."
+        message: "Unable to sign in with these credentials. If this email was added from Supabase dashboard, use Create Account once to set its password."
       },
       { status: 401 }
     );
