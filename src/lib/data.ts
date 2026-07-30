@@ -72,6 +72,12 @@ function mapResource(row: DbResource): Resource {
   const maintenanceStatus = normalizeMaintenanceStatus(row.maintenance_status ?? row.maintenanceStatus, isActive);
   const location = asString(row.location, "Campus");
   const [buildingPart, floorPart] = location.split(",").map((part) => part.trim());
+  const schedule =
+    typeof row.schedule === "string"
+      ? row.schedule
+      : row.schedule && typeof row.schedule === "object" && "label" in row.schedule
+        ? asString((row.schedule as Record<string, unknown>).label, "Mon-Fri, 08:00-17:00")
+        : "Mon-Fri, 08:00-17:00";
 
   return {
     id: asString(row.id),
@@ -88,7 +94,7 @@ function mapResource(row: DbResource): Resource {
     approvalRequired: asBoolean(row.approval_required ?? row.approvalRequired, false),
     maintenanceStatus,
     color: asString(row.color, "#00FF88"),
-    schedule: typeof row.schedule === "string" ? row.schedule : "Mon-Fri, 08:00-17:00",
+    schedule,
     utilization: asNumber(row.utilization, 0)
   };
 }

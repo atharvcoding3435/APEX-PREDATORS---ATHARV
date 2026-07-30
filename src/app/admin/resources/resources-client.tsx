@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, ListFilter, Pencil, Plus, Power, Search, X } from "lucide-react";
+import { Check, ListFilter, Loader2, Pencil, Plus, Power, Search, X } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
 import type { MaintenanceStatus, Resource, ResourceType } from "@/lib/types";
@@ -43,10 +43,6 @@ const emptyForm: FormState = {
   maintenanceStatus: "available"
 };
 
-function createResourceId(name: string) {
-  return `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}-${Date.now().toString(36)}`;
-}
-
 export function AdminResourcesClient({ initialResources }: { initialResources: Resource[] }) {
   const [managedResources, setManagedResources] = useState<Resource[]>(initialResources);
   const [search, setSearch] = useState("");
@@ -56,6 +52,8 @@ export function AdminResourcesClient({ initialResources }: { initialResources: R
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState<Resource | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
   const filteredResources = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -102,85 +100,118 @@ export function AdminResourcesClient({ initialResources }: { initialResources: R
     setIsFormOpen(true);
   }
 
-  function saveResource() {
+  async function saveResource() {
     if (!form.name.trim() || !form.building.trim() || !form.location.trim() || !form.department.trim() || form.capacity < 1) {
+      setMessage("Please complete resource name, building, location, department, and capacity.");
       return;
     }
 
-    if (editingId) {
-      setManagedResources((current) =>
-        current.map((resource) =>
-          resource.id === editingId
-            ? {
-                ...resource,
-                ...form,
-                capacity: Number(form.capacity),
-                availableQuantity: Number(form.availableQuantity),
-                isActive: form.maintenanceStatus === "available" ? resource.isActive : false,
-                color:
-                  form.maintenanceStatus !== "available"
-                    ? "#FF4444"
-                    : form.status === "available"
-                      ? "#00FF88"
-                      : form.status === "pending"
-                        ? "#FFAA00"
-                        : "#FF4444"
-              }
-            : resource
-        )
-      );
-    } else {
-      setManagedResources((current) => [
-        {
-          id: createResourceId(form.name),
+    setIsSaving(true);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/v1/resources", {
+        method: editingId ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...(editingId ? { id: editingId } : {}),
           ...form,
           capacity: Number(form.capacity),
           availableQuantity: Number(form.availableQuantity),
-          isActive: form.maintenanceStatus === "available",
-          color: form.maintenanceStatus === "available" ? "#00FF88" : "#FF4444",
-          utilization: 0
-        },
-        ...current
-      ]);
-    }
+          isActive: form.maintenanceStatus === "available"
+        })
+      });
+      const payload = await response.json().catch(() => null);
 
-    setIsFormOpen(false);
-    setEditingId(null);
-    setForm(emptyForm);
+      if (!response.ok || !payload?.data) {
+        setMessage(payload?.message ?? "Resource could not be saved.");
+        return;
+      }
+
+      const savedResource = payload.data as Resource;
+
+      if (editingId) {
+        setManagedResources((current) => current.map((resource) => (resource.id === editingId ? savedResource : resource)));
+      } else {
+        setManagedResources((current) => [savedResource, ...current]);
+      }
+
+      setIsFormOpen(false);
+      setEditingId(null);
+      setForm(emptyForm);
+      setMessage("Resource saved.");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
-  function deactivateResource() {
+  async function deactivateResource() {
     if (!confirmTarget) {
       return;
     }
 
-    setManagedResources((current) =>
-      current.map((resource) => (resource.id === confirmTarget.id ? { ...resource, isActive: false } : resource))
-    );
-    setConfirmTarget(null);
+    const response = await fetch(`/api/v1/resources?id=${encodeURIComponent(confirmTarget.id)}`, { method: "DELETE" });
+    const payload = await response.json().catch(() => null);
+
+    if (response.ok && payload?.data) {
+      setManagedResources((current) =>
+        current.map((resource) => (resource.id === confirmTarget.id ? payload.data : resource))
+      );
+      setConfirmTarget(null);
+      setMessage("Resource deactivated.");
+    } else {
+      setMessage(payload?.message ?? "Resource could not be deactivated.");
+    }
   }
 
-  function activateResource(resourceId: string) {
-    setManagedResources((current) =>
-      current.map((resource) =>
-        resource.id === resourceId ? { ...resource, isActive: true, maintenanceStatus: "available" } : resource
-      )
-    );
+  async function activateResource(resourceId: string) {
+    const resource = managedResources.find((item) => item.id === resourceId);
+
+    if (!resource) return;
+
+    const response = await fetch("/api/v1/resources", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...resource, isActive: true, maintenanceStatus: "available" })
+    });
+    const payload = await response.json().catch(() => null);
+
+    if (response.ok && payload?.data) {
+      setManagedResources((current) => current.map((item) => (item.id === resourceId ? payload.data : item)));
+      setMessage("Resource activated.");
+    } else {
+      setMessage(payload?.message ?? "Resource could not be activated.");
+    }
   }
 
-  function updateMaintenance(resourceId: string, maintenanceStatus: MaintenanceStatus) {
-    setManagedResources((current) =>
-      current.map((resource) =>
-        resource.id === resourceId
-          ? {
-              ...resource,
-              maintenanceStatus,
-              isActive: maintenanceStatus === "available",
-              status: maintenanceStatus === "available" ? resource.status : "booked"
-            }
-          : resource
-      )
-    );
+  async function updateMaintenance(resourceId: string, maintenanceStatus: MaintenanceStatus) {
+    const resource = managedResources.find((item) => item.id === resourceId);
+
+    if (!resource) return;
+
+    const nextResource = {
+      ...resource,
+      maintenanceStatus,
+      isActive: maintenanceStatus === "available",
+      status: maintenanceStatus === "available" ? resource.status : "booked"
+    };
+
+    setManagedResources((current) => current.map((item) => (item.id === resourceId ? nextResource : item)));
+
+    const response = await fetch("/api/v1/resources", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(nextResource)
+    });
+    const payload = await response.json().catch(() => null);
+
+    if (response.ok && payload?.data) {
+      setManagedResources((current) => current.map((item) => (item.id === resourceId ? payload.data : item)));
+      setMessage("Maintenance status saved.");
+    } else {
+      setManagedResources((current) => current.map((item) => (item.id === resourceId ? resource : item)));
+      setMessage(payload?.message ?? "Maintenance status could not be saved.");
+    }
   }
 
   return (
@@ -209,6 +240,12 @@ export function AdminResourcesClient({ initialResources }: { initialResources: R
           </div>
         ))}
       </section>
+
+      {message ? (
+        <div className="mb-5 rounded-lg border border-white/10 bg-ink-900 p-3 text-sm font-bold text-[#C9C9DA]" role="status">
+          {message}
+        </div>
+      ) : null}
 
       <section className="mb-5 rounded-lg border border-white/10 bg-ink-900 p-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
@@ -262,7 +299,10 @@ export function AdminResourcesClient({ initialResources }: { initialResources: R
           </div>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
             <button className="inline-flex min-h-10 items-center justify-center gap-2 rounded border border-white/10 bg-white/[0.03] px-4 text-sm font-bold hover:bg-white/10" onClick={() => setIsFormOpen(false)}><X size={17} aria-hidden="true" />Cancel</button>
-            <button className="inline-flex min-h-10 items-center justify-center gap-2 rounded bg-signal-success px-4 text-sm font-bold text-ink-950 hover:bg-white" onClick={saveResource}><Check size={17} aria-hidden="true" />Save Resource</button>
+            <button className="inline-flex min-h-10 items-center justify-center gap-2 rounded bg-signal-success px-4 text-sm font-bold text-ink-950 hover:bg-white disabled:opacity-60" disabled={isSaving} onClick={saveResource}>
+              {isSaving ? <Loader2 className="animate-spin" size={17} aria-hidden="true" /> : <Check size={17} aria-hidden="true" />}
+              Save Resource
+            </button>
           </div>
         </section>
       ) : null}
