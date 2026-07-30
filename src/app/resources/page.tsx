@@ -9,6 +9,7 @@ export default function ResourcesPage() {
       active="/resources"
       eyebrow="Resource registry"
       title="Find and manage resources"
+      description="Browse classrooms, labs, equipment, and event spaces with clear capacity, location, and availability indicators."
       actions={
         <button className="inline-flex min-h-11 items-center gap-2 rounded bg-signal-success px-4 text-sm font-bold text-ink-950 hover:bg-white">
           <Plus size={18} aria-hidden="true" />

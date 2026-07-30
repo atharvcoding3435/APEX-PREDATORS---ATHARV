@@ -6,7 +6,12 @@ export default function PendingApprovalsPage() {
   const pending = bookings.filter((booking) => booking.status === "pending");
 
   return (
-    <AppShell active="/admin/pending" eyebrow="Approval workflow" title="Pending approvals">
+    <AppShell
+      active="/admin/pending"
+      eyebrow="Approval workflow"
+      title="Pending approvals"
+      description="Approve or reject requests that need faculty or admin review before a slot is confirmed."
+    >
       <section className="grid gap-4">
         {pending.map((booking) => {
           const resource = getBookingResource(booking);

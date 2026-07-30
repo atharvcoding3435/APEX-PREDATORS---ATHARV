@@ -11,8 +11,8 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/bookings", icon: CalendarDays, label: "Bookings" },
   { href: "/resources", icon: UsersRound, label: "Resources" },
+  { href: "/bookings", icon: CalendarDays, label: "Bookings" },
   { href: "/admin/pending", icon: ShieldCheck, label: "Approvals" },
   { href: "/checkin", icon: QrCode, label: "Check-in" },
   { href: "/admin/audit", icon: ClipboardCheck, label: "Audit" }
@@ -22,13 +22,14 @@ type AppShellProps = {
   active: string;
   title: string;
   eyebrow: string;
+  description?: string;
   actions?: React.ReactNode;
   children: React.ReactNode;
 };
 
-export function AppShell({ active, title, eyebrow, actions, children }: AppShellProps) {
+export function AppShell({ active, title, eyebrow, description, actions, children }: AppShellProps) {
   return (
-    <main className="min-h-screen bg-ink-950 text-white">
+    <main className="min-h-screen bg-ink-950 pb-20 text-white lg:pb-0">
       <div className="grid min-h-screen lg:grid-cols-[260px_1fr]">
         <aside className="hidden border-r border-white/10 bg-ink-900 px-4 py-6 lg:block">
           <div className="mb-8">
@@ -48,23 +49,52 @@ export function AppShell({ active, title, eyebrow, actions, children }: AppShell
                 )}
               >
                 <item.icon size={18} aria-hidden="true" />
-                {item.label}
+                <span>{item.label}</span>
               </Link>
             ))}
           </nav>
         </aside>
 
-        <section className="px-4 py-5 sm:px-6 lg:px-8">
-          <header className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-center md:justify-between">
-            <div>
+        <section className="min-w-0 px-4 py-5 sm:px-6 lg:px-8">
+          <div className="mb-5 flex items-center justify-between border-b border-white/10 pb-4 lg:hidden">
+            <Link href="/dashboard" className="block">
+              <p className="text-xs font-bold uppercase text-signal-success">Resourcify</p>
+              <p className="font-black">CRMP Console</p>
+            </Link>
+            <span className="rounded border border-white/10 bg-ink-850 px-3 py-1 text-xs font-bold text-[#C9C9DA]">
+              Team Preview
+            </span>
+          </div>
+
+          <header className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-start md:justify-between">
+            <div className="max-w-3xl">
               <p className="text-sm font-bold uppercase text-signal-info">{eyebrow}</p>
-              <h2 className="text-3xl font-black">{title}</h2>
+              <h2 className="text-3xl font-black leading-tight">{title}</h2>
+              {description ? <p className="mt-2 text-sm text-[#A0A0B8]">{description}</p> : null}
             </div>
-            {actions}
+            {actions ? <div className="shrink-0">{actions}</div> : null}
           </header>
           {children}
         </section>
       </div>
+
+      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-ink-900/95 px-2 py-2 backdrop-blur lg:hidden">
+        <div className="grid grid-cols-6 gap-1">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex min-h-14 flex-col items-center justify-center gap-1 rounded text-[11px] font-bold transition",
+                active === item.href ? "bg-signal-success text-ink-950" : "text-[#A0A0B8] hover:bg-white/5 hover:text-white"
+              )}
+            >
+              <item.icon size={18} aria-hidden="true" />
+              <span className="max-w-full truncate">{item.label}</span>
+            </Link>
+          ))}
+        </div>
+      </nav>
     </main>
   );
 }

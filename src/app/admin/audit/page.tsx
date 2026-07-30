@@ -3,7 +3,12 @@ import { bookings, getBookingResource } from "@/lib/mock-data";
 
 export default function AuditPage() {
   return (
-    <AppShell active="/admin/audit" eyebrow="Audit trail" title="Immutable activity log">
+    <AppShell
+      active="/admin/audit"
+      eyebrow="Audit trail"
+      title="Immutable activity log"
+      description="Track booking, approval, cancellation, and check-in events for transparent campus resource accountability."
+    >
       <section className="overflow-hidden rounded-lg border border-white/10 bg-ink-900">
         {bookings.map((booking) => {
           const resource = getBookingResource(booking);

@@ -7,7 +7,12 @@ export default function CheckInPage() {
   const resource = getBookingResource(confirmedBooking);
 
   return (
-    <AppShell active="/checkin" eyebrow="QR attendance" title="Check-in station">
+    <AppShell
+      active="/checkin"
+      eyebrow="QR attendance"
+      title="Check-in station"
+      description="Validate confirmed reservations at the room or equipment desk with QR and manual-code options."
+    >
       <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-lg border border-white/10 bg-ink-900 p-5">
           <div className="grid aspect-square place-items-center rounded-lg border border-white/10 bg-white">
@@ -24,7 +29,8 @@ export default function CheckInPage() {
             {confirmedBooking.requester} · {confirmedBooking.date} · {confirmedBooking.startTime} - {confirmedBooking.endTime}
           </p>
           <p className="mt-5 text-[#C9C9DA]">
-            This demo screen represents the check-in flow. In the Supabase-backed version, the QR payload will carry a single-use booking token and the API will mark the booking completed after validation.
+            Scan the reservation QR or enter the booking code manually to complete attendance for a confirmed slot.
+            Single-use token validation will connect to Supabase during the backend sprint.
           </p>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2">

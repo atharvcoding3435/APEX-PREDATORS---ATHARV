@@ -44,7 +44,7 @@ export default function Home() {
             href="/dashboard"
             className="inline-flex min-h-11 items-center gap-2 rounded bg-signal-success px-4 text-sm font-bold text-ink-950 transition hover:bg-white"
           >
-            Open Demo
+            Open App
             <ArrowRight size={18} aria-hidden="true" />
           </Link>
         </nav>
@@ -66,7 +66,7 @@ export default function Home() {
                 href="/dashboard"
                 className="inline-flex min-h-12 items-center gap-2 rounded bg-signal-success px-5 font-bold text-ink-950 transition hover:bg-white"
               >
-                Launch Dashboard
+                Launch Workspace
                 <ArrowRight size={19} aria-hidden="true" />
               </Link>
               <a

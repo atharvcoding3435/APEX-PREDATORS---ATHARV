@@ -14,6 +14,7 @@ export default function DashboardPage() {
       active="/dashboard"
       eyebrow="Live dashboard"
       title="Campus resource control"
+      description="Monitor resource availability, pending approvals, active bookings, and waitlist demand from one shared workspace."
       actions={
         <div className="flex gap-2">
           <button className="grid min-h-11 w-11 place-items-center rounded border border-white/10 bg-ink-850 text-white hover:bg-white/5" title="Notifications">
