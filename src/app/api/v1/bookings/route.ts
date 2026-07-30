@@ -81,7 +81,7 @@ async function insertSupabaseBooking(input: z.infer<typeof createBookingSchema>,
       resource_id: input.resourceId,
       requester_id: requesterId,
       created_by: requesterId,
-      status,
+      status: toDatabaseStatus(status as Booking["status"]),
       date: input.date,
       start_time: input.startTime,
       end_time: input.endTime,
@@ -109,6 +109,9 @@ async function insertSupabaseBooking(input: z.infer<typeof createBookingSchema>,
 }
 
 function toApiBooking(row: Record<string, unknown>, fallback: Booking): Booking {
+  const rawStatus = String(row.status ?? fallback.status);
+  const status = rawStatus === "confirmed" ? "approved" : rawStatus;
+
   return {
     ...fallback,
     id: String(row.id ?? fallback.id),
@@ -117,8 +120,12 @@ function toApiBooking(row: Record<string, unknown>, fallback: Booking): Booking 
     startTime: String(row.start_time ?? fallback.startTime).slice(0, 5),
     endTime: String(row.end_time ?? fallback.endTime).slice(0, 5),
     purpose: String(row.purpose ?? fallback.purpose),
-    status: String(row.status ?? fallback.status) as Booking["status"]
+    status: status as Booking["status"]
   };
+}
+
+function toDatabaseStatus(status: Booking["status"]) {
+  return status === "approved" ? "confirmed" : status;
 }
 
 export async function GET() {
@@ -294,7 +301,7 @@ export async function PATCH(request: Request) {
   if (isSupabaseServiceConfigured()) {
     const updatePayload: Record<string, string> = {};
 
-    if (parsed.data.status) updatePayload.status = parsed.data.status;
+    if (parsed.data.status) updatePayload.status = toDatabaseStatus(parsed.data.status);
     if (parsed.data.resourceId) updatePayload.resource_id = parsed.data.resourceId;
     if (parsed.data.date) updatePayload.date = parsed.data.date;
     if (parsed.data.startTime) updatePayload.start_time = parsed.data.startTime;
