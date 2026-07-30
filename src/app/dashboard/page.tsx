@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Bell, CheckCircle2, Clock3, ListFilter, Plus, Search } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { ResourceCard } from "@/components/resource-card";
@@ -20,10 +21,10 @@ export default function DashboardPage() {
           <button className="grid min-h-11 w-11 place-items-center rounded border border-white/10 bg-ink-850 text-white hover:bg-white/5" title="Notifications">
             <Bell size={19} aria-hidden="true" />
           </button>
-          <button className="inline-flex min-h-11 items-center gap-2 rounded bg-signal-success px-4 text-sm font-bold text-ink-950 hover:bg-white">
+          <Link href="/bookings/new" className="inline-flex min-h-11 items-center gap-2 rounded bg-signal-success px-4 text-sm font-bold text-ink-950 hover:bg-white">
             <Plus size={18} aria-hidden="true" />
             New Booking
-          </button>
+          </Link>
         </div>
       }
     >

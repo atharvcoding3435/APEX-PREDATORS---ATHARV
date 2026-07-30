@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CalendarPlus } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
@@ -11,10 +12,10 @@ export default function BookingsPage() {
       title="My bookings"
       description="Review upcoming reservations, status changes, resource details, and the next actions needed for each request."
       actions={
-        <button className="inline-flex min-h-11 items-center gap-2 rounded bg-signal-success px-4 text-sm font-bold text-ink-950 hover:bg-white">
+        <Link href="/bookings/new" className="inline-flex min-h-11 items-center gap-2 rounded bg-signal-success px-4 text-sm font-bold text-ink-950 hover:bg-white">
           <CalendarPlus size={18} aria-hidden="true" />
           Create Booking
-        </button>
+        </Link>
       }
     >
       <section className="overflow-hidden rounded-lg border border-white/10 bg-ink-900">
