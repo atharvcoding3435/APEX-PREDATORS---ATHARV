@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AuthProvider } from "@/components/auth-provider";
+import { DemoRoleProvider } from "@/components/demo-role-switcher";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <DemoRoleProvider>{children}</DemoRoleProvider>
+        </AuthProvider>
       </body>
     </html>
   );

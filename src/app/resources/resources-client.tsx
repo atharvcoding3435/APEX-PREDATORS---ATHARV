@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import { ListFilter, Search, X } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { useDemoRole } from "@/components/demo-role-switcher";
 import { ResourceCard } from "@/components/resource-card";
+import { getBookableTypes, getResourceAccess, getRoleDescription } from "@/lib/role-access";
 import type { Resource, ResourceType } from "@/lib/types";
 import { cn, titleCase } from "@/lib/utils";
 
@@ -31,18 +33,24 @@ function filterResources(resources: Resource[], search: string, type: ResourceTy
 }
 
 export function ResourcesClient({ resources }: { resources: Resource[] }) {
+  const { role } = useDemoRole();
   const [search, setSearch] = useState("");
   const [type, setType] = useState<ResourceTypeFilter>("all");
   const [status, setStatus] = useState<ResourceStatusFilter>("all");
 
   const filteredResources = useMemo(() => filterResources(resources, search, type, status), [resources, search, type, status]);
+  const bookableResources = useMemo(
+    () => resources.filter((resource) => getResourceAccess(role, resource).canBook),
+    [resources, role]
+  );
   const hasActiveFilters = search.trim().length > 0 || type !== "all" || status !== "all";
+  const bookableTypes = getBookableTypes(role);
 
   const stats = [
     { label: "Total", value: resources.length, tone: "text-white" },
     { label: "Available", value: resources.filter((resource) => resource.status === "available").length, tone: "text-signal-success" },
-    { label: "Pending", value: resources.filter((resource) => resource.status === "pending").length, tone: "text-signal-warning" },
-    { label: "Booked", value: resources.filter((resource) => resource.status === "booked").length, tone: "text-signal-danger" }
+    { label: "Bookable", value: bookableResources.length, tone: "text-signal-info" },
+    { label: "View only", value: resources.length - bookableResources.length, tone: "text-signal-warning" }
   ];
 
   function resetFilters() {
@@ -56,8 +64,17 @@ export function ResourcesClient({ resources }: { resources: Resource[] }) {
       active="/resources"
       eyebrow="Resource registry"
       title="Find resources"
-      description="Browse classrooms, labs, equipment, and event spaces with clear capacity, location, and availability indicators."
+      description={`${titleCase(role)} portal: ${getRoleDescription(role)}`}
     >
+      <section className="mb-5 rounded-lg border border-signal-info/30 bg-signal-info/10 p-4">
+        <p className="text-sm font-bold uppercase text-signal-info">Personalized access</p>
+        <h3 className="mt-1 text-xl font-black">{titleCase(role)} resource rules</h3>
+        <p className="mt-2 text-sm text-[#C9C9DA]">{getRoleDescription(role)}</p>
+        <p className="mt-3 text-sm font-bold text-white">
+          Can request: {bookableTypes.length > 0 ? bookableTypes.map(titleCase).join(", ") : "No direct booking"}
+        </p>
+      </section>
+
       <section className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <div key={stat.label} className="rounded-lg border border-white/10 bg-ink-900 p-4">
@@ -135,9 +152,18 @@ export function ResourcesClient({ resources }: { resources: Resource[] }) {
 
       {filteredResources.length > 0 ? (
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {filteredResources.map((resource) => (
-            <ResourceCard key={resource.id} resource={resource} />
-          ))}
+          {filteredResources.map((resource) => {
+            const access = getResourceAccess(role, resource);
+
+            return (
+              <ResourceCard
+                key={resource.id}
+                resource={resource}
+                canBook={access.canBook}
+                restrictionReason={access.canBook ? undefined : access.reason}
+              />
+            );
+          })}
         </section>
       ) : (
         <section className="rounded-lg border border-dashed border-white/20 bg-ink-900 p-8 text-center">

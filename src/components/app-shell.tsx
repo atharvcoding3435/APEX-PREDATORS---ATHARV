@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DemoRoleSwitcher } from "@/components/demo-role-switcher";
 import { SessionActions } from "@/components/session-actions";
 import {
   BarChart3,
@@ -94,6 +95,7 @@ export function AppShell({ active, title, eyebrow, variant, description, actions
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-3">
               {actions}
+              {!isAdmin ? <DemoRoleSwitcher /> : null}
               <SessionActions />
             </div>
           </header>

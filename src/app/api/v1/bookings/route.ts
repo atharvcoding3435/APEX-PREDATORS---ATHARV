@@ -3,6 +3,7 @@ import { z } from "zod";
 import { bookings, getResource, resources } from "@/lib/mock-data";
 import { requireAdmin } from "@/lib/auth";
 import { getBookingsData } from "@/lib/data";
+import { getResourceAccess } from "@/lib/role-access";
 import { userRoles } from "@/lib/roles";
 import { isSupabaseServiceConfigured } from "@/lib/supabase";
 import {
@@ -84,6 +85,19 @@ export async function POST(request: Request) {
         message: "The selected resource could not be found."
       },
       { status: 404 }
+    );
+  }
+
+  const access = getResourceAccess(parsed.data.requesterRole as UserRole, resource);
+
+  if (!access.canBook) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "RESOURCE_NOT_ALLOWED_FOR_ROLE",
+        message: access.reason
+      },
+      { status: 403 }
     );
   }
 

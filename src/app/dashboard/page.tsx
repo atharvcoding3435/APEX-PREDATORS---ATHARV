@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Bell, CheckCircle2, Clock3, ListFilter, Plus, Search } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { ResourceCard } from "@/components/resource-card";
+import { RoleDashboardPanel } from "@/components/role-dashboard-panel";
 import { StatusBadge } from "@/components/status-badge";
 import { findResourceById, getAppData } from "@/lib/data";
 import { waitlist } from "@/lib/mock-data";
@@ -31,6 +32,8 @@ export default async function DashboardPage() {
         </div>
       }
     >
+      <RoleDashboardPanel />
+
       <div className="grid gap-4 md:grid-cols-5">
         {[
           ["Available", availableCount, "text-signal-success"],

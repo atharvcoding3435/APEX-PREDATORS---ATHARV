@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -25,7 +25,9 @@ import {
   suggestBookingAlternatives,
   validateBookingRequest
 } from "@/lib/booking-rules";
+import { useDemoRole } from "@/components/demo-role-switcher";
 import { bookings, getBookingResource, resources } from "@/lib/mock-data";
+import { getResourceAccess, getRoleDescription } from "@/lib/role-access";
 import { publicSignupRoles } from "@/lib/roles";
 import type { Booking, BookingAlternative, UserRole } from "@/lib/types";
 import { cn, titleCase } from "@/lib/utils";
@@ -74,20 +76,26 @@ function getSlotClass(status: string, isSelected: boolean) {
 }
 
 export default function NewBookingPage() {
-  const [resourceId, setResourceId] = useState(resources[0]?.id ?? "");
+  const { role, setRole } = useDemoRole();
+  const [resourceId, setResourceId] = useState("");
   const [date, setDate] = useState("2026-08-01");
   const [startTime, setStartTime] = useState("10:00");
   const [endTime, setEndTime] = useState("11:00");
   const [requester, setRequester] = useState("Ananya Sharma");
   const [department, setDepartment] = useState("Computer Science");
-  const [requesterRole, setRequesterRole] = useState<UserRole>("student");
+  const [requesterRole, setRequesterRole] = useState<UserRole>(role);
   const [purpose, setPurpose] = useState("Project demo rehearsal");
   const [preview, setPreview] = useState<BookingPreview | null>(null);
   const [serverConflict, setServerConflict] = useState<ConflictResponse | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const selectableResources = useMemo(
+    () => resources.filter((resource) => getResourceAccess(requesterRole, resource).canBook),
+    [requesterRole]
+  );
   const selectedResource = resources.find((resource) => resource.id === resourceId);
+  const selectedAccess = selectedResource ? getResourceAccess(requesterRole, selectedResource) : null;
   const bookingInput = { resourceId, date, startTime, endTime };
   const clientConflict = useMemo(() => findBookingConflict(bookingInput, bookings), [date, endTime, resourceId, startTime]);
   const conflict = serverConflict?.conflictingBooking ?? clientConflict;
@@ -106,8 +114,27 @@ export default function NewBookingPage() {
       purpose.trim().length >= 5 &&
       validation.valid &&
       !clientConflict &&
+      selectedAccess?.canBook &&
       !isSubmitting
   );
+
+  useEffect(() => {
+    setRequesterRole(role);
+  }, [role]);
+
+  useEffect(() => {
+    const requestedResourceId = new URLSearchParams(window.location.search).get("resourceId");
+    const requestedResource = resources.find((resource) => resource.id === requestedResourceId);
+
+    if (requestedResource && getResourceAccess(requesterRole, requestedResource).canBook) {
+      setResourceId(requestedResource.id);
+      return;
+    }
+
+    if (!resourceId || !selectedAccess?.canBook) {
+      setResourceId(selectableResources[0]?.id ?? "");
+    }
+  }, [requesterRole, resourceId, selectableResources, selectedAccess?.canBook]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -117,6 +144,11 @@ export default function NewBookingPage() {
 
     if (!selectedResource || !validation.valid) {
       setToast(validation.errors[0] ?? "Please complete the booking form.");
+      return;
+    }
+
+    if (!selectedAccess?.canBook) {
+      setToast(selectedAccess?.reason ?? "This role cannot request the selected resource.");
       return;
     }
 
@@ -207,6 +239,11 @@ export default function NewBookingPage() {
 
       <div className="grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
         <form className="rounded-lg border border-white/10 bg-ink-900 p-4" onSubmit={handleSubmit}>
+          <section className="mb-4 rounded-lg border border-signal-info/30 bg-signal-info/10 p-4">
+            <p className="text-sm font-bold uppercase text-signal-info">{titleCase(requesterRole)} booking rules</p>
+            <p className="mt-2 text-sm text-[#C9C9DA]">{getRoleDescription(requesterRole)}</p>
+          </section>
+
           <div className="grid gap-4 md:grid-cols-2">
             <label className="grid gap-2">
               <span className="text-sm font-bold text-[#C9C9DA]">Resource</span>
@@ -218,12 +255,15 @@ export default function NewBookingPage() {
                   setServerConflict(null);
                 }}
               >
-                {resources.map((resource) => (
+                {selectableResources.map((resource) => (
                   <option key={resource.id} value={resource.id}>
                     {resource.name} - {titleCase(resource.type)}
                   </option>
                 ))}
               </select>
+              {selectableResources.length === 0 ? (
+                <span className="text-xs font-bold text-signal-warning">This role does not have direct booking access.</span>
+              ) : null}
             </label>
 
             <label className="grid gap-2">
@@ -299,7 +339,10 @@ export default function NewBookingPage() {
                       ? "border-signal-success bg-signal-success text-ink-950"
                       : "border-white/10 bg-ink-850 text-[#C9C9DA] hover:bg-white/5 hover:text-white"
                   )}
-                  onClick={() => setRequesterRole(role)}
+                  onClick={() => {
+                    setRequesterRole(role);
+                    setRole(role);
+                  }}
                 >
                   {titleCase(role)}
                 </button>
@@ -323,6 +366,12 @@ export default function NewBookingPage() {
               {validation.errors.map((error) => (
                 <p key={error}>{error}</p>
               ))}
+            </div>
+          ) : null}
+
+          {selectedAccess && !selectedAccess.canBook ? (
+            <div className="mt-4 rounded border border-signal-warning/30 bg-signal-warning/10 px-3 py-2 text-sm font-bold text-signal-warning">
+              {selectedAccess.reason}
             </div>
           ) : null}
 
