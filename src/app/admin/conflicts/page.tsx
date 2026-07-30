@@ -44,6 +44,11 @@ export default function AdminConflictsPage() {
 
   function updateStatus(bookingId: string, status: BookingStatus) {
     setBookings((current) => current.map((booking) => (booking.id === bookingId ? { ...booking, status } : booking)));
+    fetch("/api/v1/bookings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: bookingId, status })
+    }).catch(() => undefined);
   }
 
   function reschedule(booking: Booking) {
@@ -54,13 +59,25 @@ export default function AdminConflictsPage() {
       return;
     }
 
+    const updatedBooking = { ...booking, resourceId: suggestion.resourceId, startTime: suggestion.startTime, endTime: suggestion.endTime };
+
     setBookings((current) =>
       current.map((item) =>
         item.id === booking.id
-          ? { ...item, resourceId: suggestion.resourceId, startTime: suggestion.startTime, endTime: suggestion.endTime }
+          ? updatedBooking
           : item
       )
     );
+    fetch("/api/v1/bookings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: booking.id,
+        resourceId: suggestion.resourceId,
+        startTime: suggestion.startTime,
+        endTime: suggestion.endTime
+      })
+    }).catch(() => undefined);
   }
 
   return (

@@ -13,7 +13,7 @@ import {
   suggestBookingAlternatives,
   validateBookingRequest
 } from "@/lib/booking-rules";
-import type { UserRole } from "@/lib/types";
+import type { Booking, UserRole } from "@/lib/types";
 
 const createBookingSchema = z.object({
   resourceId: z.string().min(1),
@@ -28,6 +28,7 @@ const createBookingSchema = z.object({
 
 const updateBookingSchema = z.object({
   id: z.string().min(1),
+  resourceId: z.string().min(1).optional(),
   status: z.enum(["pending", "approved", "active", "completed", "cancelled", "rejected"]).optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   startTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
@@ -104,6 +105,19 @@ async function insertSupabaseBooking(input: z.infer<typeof createBookingSchema>,
     endTime: input.endTime,
     purpose: input.purpose,
     status
+  };
+}
+
+function toApiBooking(row: Record<string, unknown>, fallback: Booking): Booking {
+  return {
+    ...fallback,
+    id: String(row.id ?? fallback.id),
+    resourceId: String(row.resource_id ?? fallback.resourceId),
+    date: String(row.date ?? fallback.date),
+    startTime: String(row.start_time ?? fallback.startTime).slice(0, 5),
+    endTime: String(row.end_time ?? fallback.endTime).slice(0, 5),
+    purpose: String(row.purpose ?? fallback.purpose),
+    status: String(row.status ?? fallback.status) as Booking["status"]
   };
 }
 
@@ -258,7 +272,8 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const existingBooking = bookings.find((booking) => booking.id === parsed.data.id);
+  const liveBookings = await getBookingsData();
+  const existingBooking = liveBookings.find((booking) => booking.id === parsed.data.id) ?? bookings.find((booking) => booking.id === parsed.data.id);
 
   if (!existingBooking) {
     return NextResponse.json(
@@ -276,8 +291,73 @@ export async function PATCH(request: Request) {
     ...parsed.data
   };
 
+  if (isSupabaseServiceConfigured()) {
+    const updatePayload: Record<string, string> = {};
+
+    if (parsed.data.status) updatePayload.status = parsed.data.status;
+    if (parsed.data.resourceId) updatePayload.resource_id = parsed.data.resourceId;
+    if (parsed.data.date) updatePayload.date = parsed.data.date;
+    if (parsed.data.startTime) updatePayload.start_time = parsed.data.startTime;
+    if (parsed.data.endTime) updatePayload.end_time = parsed.data.endTime;
+
+    if (Object.keys(updatePayload).length === 0) {
+      return NextResponse.json({ success: true, data: existingBooking, source: "supabase" });
+    }
+
+    const nextBooking = { ...existingBooking, ...parsed.data };
+    const rescheduleConflict =
+      parsed.data.resourceId || parsed.data.date || parsed.data.startTime || parsed.data.endTime
+        ? findBookingConflict(nextBooking, liveBookings.filter((booking) => booking.id !== parsed.data.id))
+        : null;
+
+    if (rescheduleConflict) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "RESOURCE_ALREADY_BOOKED",
+          message: "This resource has already been booked for the selected time.",
+          conflictingBooking: {
+            id: rescheduleConflict.id,
+            resourceId: rescheduleConflict.resourceId,
+            startTime: rescheduleConflict.startTime,
+            endTime: rescheduleConflict.endTime,
+            timeRange: formatTimeRange(rescheduleConflict.startTime, rescheduleConflict.endTime),
+            status: rescheduleConflict.status
+          }
+        },
+        { status: 409 }
+      );
+    }
+
+    const supabase = createServiceSupabaseClient();
+    const { data, error } = await supabase
+      .from("bookings")
+      .update(updatePayload)
+      .eq("id", parsed.data.id)
+      .select("*")
+      .single();
+
+    if (error || !data) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "BOOKING_UPDATE_FAILED",
+          message: error?.message ?? "Booking could not be updated."
+        },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: toApiBooking(data as Record<string, unknown>, updatedBooking),
+      source: "supabase"
+    });
+  }
+
   return NextResponse.json({
     success: true,
-    data: updatedBooking
+    data: updatedBooking,
+    source: "mock"
   });
 }

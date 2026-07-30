@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarClock, Check, Eye, ListFilter, Search, X } from "lucide-react";
+import { Eye, ListFilter, Search } from "lucide-react";
+import { AdminBookingActions } from "@/components/admin-booking-actions";
 import { AppShell } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
 import { bookings as initialBookings, resources as initialResources } from "@/lib/mock-data";
@@ -63,21 +64,31 @@ export default function AdminBookingsPage() {
     });
   }, [bookings, date, department, resourceId, resources, search, status]);
 
-  function updateStatus(bookingId: string, nextStatus: BookingStatus) {
-    setBookings((current) =>
-      current.map((booking) => (booking.id === bookingId ? { ...booking, status: nextStatus } : booking))
-    );
+  function mergeBooking(updatedBooking: Booking) {
+    setBookings((current) => current.map((booking) => (booking.id === updatedBooking.id ? { ...booking, ...updatedBooking } : booking)));
   }
 
-  function saveReschedule() {
+  async function saveReschedule() {
     if (!rescheduleBooking) {
       return;
     }
 
-    setBookings((current) =>
-      current.map((booking) => (booking.id === rescheduleBooking.id ? rescheduleBooking : booking))
-    );
-    setRescheduleBooking(null);
+    const response = await fetch("/api/v1/bookings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: rescheduleBooking.id,
+        date: rescheduleBooking.date,
+        startTime: rescheduleBooking.startTime,
+        endTime: rescheduleBooking.endTime
+      })
+    });
+    const payload = await response.json().catch(() => null);
+
+    if (response.ok && payload?.data) {
+      mergeBooking(payload.data);
+      setRescheduleBooking(null);
+    }
   }
 
   return (
@@ -154,18 +165,7 @@ export default function AdminBookingsPage() {
               <p className="text-sm text-[#C9C9DA]">{formatTimeRange(booking.startTime, booking.endTime)}</p>
               <StatusBadge kind="booking" status={booking.status} />
               <div className="flex flex-wrap gap-2">
-                <button className="grid min-h-10 w-10 place-items-center rounded border border-signal-success/40 bg-signal-success/10 text-signal-success" onClick={() => updateStatus(booking.id, "approved")} title="Approve">
-                  <Check size={17} aria-hidden="true" />
-                </button>
-                <button className="grid min-h-10 w-10 place-items-center rounded border border-signal-danger/40 bg-signal-danger/10 text-signal-danger" onClick={() => updateStatus(booking.id, "rejected")} title="Reject">
-                  <X size={17} aria-hidden="true" />
-                </button>
-                <button className="grid min-h-10 w-10 place-items-center rounded border border-white/10 bg-ink-850 hover:bg-white/5" onClick={() => updateStatus(booking.id, "cancelled")} title="Cancel">
-                  <X size={17} aria-hidden="true" />
-                </button>
-                <button className="grid min-h-10 w-10 place-items-center rounded border border-white/10 bg-ink-850 hover:bg-white/5" onClick={() => setRescheduleBooking(booking)} title="Reschedule">
-                  <CalendarClock size={17} aria-hidden="true" />
-                </button>
+                <AdminBookingActions booking={booking} compact onUpdated={mergeBooking} onReschedule={setRescheduleBooking} />
                 <a className="grid min-h-10 w-10 place-items-center rounded border border-white/10 bg-ink-850 hover:bg-white/5" href={`/bookings/${booking.id}`} title="View details">
                   <Eye size={17} aria-hidden="true" />
                 </a>
