@@ -4,6 +4,8 @@ import { AppShell } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
 import { findResourceById, getAppData } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+
 export default async function BookingsPage() {
   const { bookings, resources } = await getAppData();
 

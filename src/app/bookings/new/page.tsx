@@ -26,7 +26,7 @@ import {
   validateBookingRequest
 } from "@/lib/booking-rules";
 import { useDemoRole } from "@/components/demo-role-switcher";
-import { bookings, getBookingResource, resources } from "@/lib/mock-data";
+import { bookings as initialBookings, resources as initialResources } from "@/lib/mock-data";
 import { getResourceAccess, getRoleDescription } from "@/lib/role-access";
 import { publicSignupRoles } from "@/lib/roles";
 import type { Booking, BookingAlternative, UserRole } from "@/lib/types";
@@ -77,6 +77,8 @@ function getSlotClass(status: string, isSelected: boolean) {
 
 export default function NewBookingPage() {
   const { role, setRole } = useDemoRole();
+  const [resources, setResources] = useState(initialResources);
+  const [bookings, setBookings] = useState(initialBookings);
   const [resourceId, setResourceId] = useState("");
   const [date, setDate] = useState("2026-08-01");
   const [startTime, setStartTime] = useState("10:00");
@@ -99,7 +101,7 @@ export default function NewBookingPage() {
   const bookingInput = { resourceId, date, startTime, endTime };
   const clientConflict = useMemo(() => findBookingConflict(bookingInput, bookings), [date, endTime, resourceId, startTime]);
   const conflict = serverConflict?.conflictingBooking ?? clientConflict;
-  const conflictResource = clientConflict ? getBookingResource(clientConflict) : selectedResource;
+  const conflictResource = clientConflict ? resources.find((resource) => resource.id === clientConflict.resourceId) : selectedResource;
   const validation = useMemo(() => validateBookingRequest(bookingInput), [date, endTime, resourceId, startTime]);
   const alternatives = useMemo(
     () => serverConflict?.suggestions ?? (clientConflict ? suggestBookingAlternatives(bookingInput, resources, bookings) : []),
@@ -119,6 +121,29 @@ export default function NewBookingPage() {
   );
 
   useEffect(() => {
+    async function loadLiveData() {
+      const [resourceResponse, bookingResponse] = await Promise.all([
+        fetch("/api/v1/resources"),
+        fetch("/api/v1/bookings")
+      ]);
+      const [resourcePayload, bookingPayload] = await Promise.all([
+        resourceResponse.json(),
+        bookingResponse.json()
+      ]);
+
+      if (Array.isArray(resourcePayload.data)) {
+        setResources(resourcePayload.data);
+      }
+
+      if (Array.isArray(bookingPayload.data)) {
+        setBookings(bookingPayload.data);
+      }
+    }
+
+    loadLiveData().catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
     setRequesterRole(role);
   }, [role]);
 
@@ -134,7 +159,7 @@ export default function NewBookingPage() {
     if (!resourceId || !selectedAccess?.canBook) {
       setResourceId(selectableResources[0]?.id ?? "");
     }
-  }, [requesterRole, resourceId, selectableResources, selectedAccess?.canBook]);
+  }, [requesterRole, resourceId, resources, selectableResources, selectedAccess?.canBook]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -194,7 +219,8 @@ export default function NewBookingPage() {
         resourceName: selectedResource.name,
         role: requesterRole
       });
-      setToast("Booking preview created successfully.");
+      setBookings((current) => [payload.data, ...current]);
+      setToast(payload.source === "supabase" ? "Booking saved to Supabase successfully." : "Booking preview created successfully.");
     } catch {
       setToast("Network error while checking availability. Please try again.");
     } finally {

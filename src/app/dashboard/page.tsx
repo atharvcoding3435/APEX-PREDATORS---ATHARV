@@ -7,6 +7,8 @@ import { StatusBadge } from "@/components/status-badge";
 import { findResourceById, getAppData } from "@/lib/data";
 import { waitlist } from "@/lib/mock-data";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const { bookings, resources } = await getAppData();
   const availableCount = resources.filter((resource) => resource.status === "available").length;

@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { bookings, getResource, resources } from "@/lib/mock-data";
 import { requireAdmin } from "@/lib/auth";
-import { getBookingsData } from "@/lib/data";
+import { getBookingsData, getResourcesData } from "@/lib/data";
 import { getResourceAccess } from "@/lib/role-access";
 import { userRoles } from "@/lib/roles";
-import { isSupabaseServiceConfigured } from "@/lib/supabase";
+import { createServiceSupabaseClient, isSupabaseServiceConfigured } from "@/lib/supabase";
 import {
   findBookingConflict,
   formatTimeRange,
@@ -37,6 +37,74 @@ const updateBookingSchema = z.object({
 function getRequestOriginDate(request: Request) {
   const demoNow = request.headers.get("x-demo-now");
   return demoNow ? new Date(demoNow) : new Date();
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, ".")
+    .replace(/(^\.|\.$)/g, "");
+}
+
+async function upsertDemoRequester(input: z.infer<typeof createBookingSchema>) {
+  const supabase = createServiceSupabaseClient();
+  const email = `${slugify(input.requester) || "demo"}.${input.requesterRole}@demo.resourcify.local`;
+  const { data, error } = await supabase
+    .from("users")
+    .upsert(
+      {
+        email,
+        name: input.requester,
+        role: input.requesterRole,
+        department: input.department
+      },
+      { onConflict: "email" }
+    )
+    .select("id")
+    .single();
+
+  if (error || !data?.id) {
+    throw error ?? new Error("Unable to prepare requester profile.");
+  }
+
+  return String(data.id);
+}
+
+async function insertSupabaseBooking(input: z.infer<typeof createBookingSchema>, status: string) {
+  const supabase = createServiceSupabaseClient();
+  const requesterId = await upsertDemoRequester(input);
+  const { data, error } = await supabase
+    .from("bookings")
+    .insert({
+      resource_id: input.resourceId,
+      requester_id: requesterId,
+      created_by: requesterId,
+      status,
+      date: input.date,
+      start_time: input.startTime,
+      end_time: input.endTime,
+      purpose: input.purpose
+    })
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw error ?? new Error("Unable to create booking.");
+  }
+
+  return {
+    id: String(data.id),
+    resourceId: input.resourceId,
+    requester: input.requester,
+    role: input.requesterRole as UserRole,
+    department: input.department,
+    date: input.date,
+    startTime: input.startTime,
+    endTime: input.endTime,
+    purpose: input.purpose,
+    status
+  };
 }
 
 export async function GET() {
@@ -75,7 +143,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const resource = getResource(parsed.data.resourceId);
+  const liveResources = await getResourcesData();
+  const liveBookings = await getBookingsData();
+  const resource = liveResources.find((item) => item.id === parsed.data.resourceId) ?? getResource(parsed.data.resourceId);
 
   if (!resource) {
     return NextResponse.json(
@@ -101,7 +171,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const conflict = findBookingConflict(parsed.data, bookings);
+  const activeBookings = isSupabaseServiceConfigured() ? liveBookings : bookings;
+  const activeResources = isSupabaseServiceConfigured() ? liveResources : resources;
+  const conflict = findBookingConflict(parsed.data, activeBookings);
 
   if (conflict) {
     return NextResponse.json(
@@ -118,10 +190,36 @@ export async function POST(request: Request) {
           timeRange: formatTimeRange(conflict.startTime, conflict.endTime),
           status: conflict.status
         },
-        suggestions: suggestBookingAlternatives(parsed.data, resources, bookings)
+        suggestions: suggestBookingAlternatives(parsed.data, activeResources, activeBookings)
       },
       { status: 409 }
     );
+  }
+
+  const status = getDefaultBookingStatus(parsed.data.requesterRole as UserRole, resource);
+
+  if (isSupabaseServiceConfigured()) {
+    try {
+      const data = await insertSupabaseBooking(parsed.data, status);
+
+      return NextResponse.json(
+        {
+          success: true,
+          data,
+          source: "supabase"
+        },
+        { status: 201 }
+      );
+    } catch (error) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "BOOKING_CREATE_FAILED",
+          message: error instanceof Error ? error.message : "Booking could not be saved."
+        },
+        { status: 500 }
+      );
+    }
   }
 
   return NextResponse.json(
@@ -130,8 +228,9 @@ export async function POST(request: Request) {
       data: {
         id: `preview-${Date.now()}`,
         ...parsed.data,
-        status: getDefaultBookingStatus(parsed.data.requesterRole as UserRole, resource)
-      }
+        status
+      },
+      source: "mock"
     },
     { status: 201 }
   );

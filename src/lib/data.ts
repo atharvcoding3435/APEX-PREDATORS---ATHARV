@@ -19,6 +19,10 @@ function asBoolean(value: unknown, fallback = false) {
   return typeof value === "boolean" ? value : fallback;
 }
 
+function asTime(value: unknown) {
+  return asString(value).slice(0, 5);
+}
+
 function normalizeResourceType(value: unknown): ResourceType {
   const type = asString(value, "classroom");
 
@@ -115,8 +119,8 @@ function mapBooking(row: DbBooking, usersById: Map<string, AdminUser>): Booking 
     role: user?.role ?? "student",
     department: user?.department ?? asString(row.department, "Unassigned"),
     date: asString(row.date),
-    startTime: asString(row.start_time ?? row.startTime),
-    endTime: asString(row.end_time ?? row.endTime),
+    startTime: asTime(row.start_time ?? row.startTime),
+    endTime: asTime(row.end_time ?? row.endTime),
     purpose: asString(row.purpose, "Campus resource booking"),
     status: normalizeBookingStatus(row.status)
   };
