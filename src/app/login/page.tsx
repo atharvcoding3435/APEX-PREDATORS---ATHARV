@@ -4,7 +4,6 @@ import { FormEvent, Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, LockKeyhole } from "lucide-react";
-import { createBrowserSupabaseClient } from "@/lib/supabase";
 
 function LoginForm() {
   const router = useRouter();
@@ -20,30 +19,31 @@ function LoginForm() {
     setError("");
     setLoading(true);
 
-    const supabase = createBrowserSupabaseClient();
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 20000);
 
-    if (signInError || !data.session?.access_token) {
-      setError(signInError?.message ?? "Unable to sign in with these credentials.");
+    try {
+      const response = await fetch("/api/v1/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+        signal: controller.signal
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        setError(payload?.message ?? "Unable to sign in with these credentials.");
+        return;
+      }
+
+      router.push(nextPath);
+      router.refresh();
+    } catch (loginError) {
+      setError(loginError instanceof DOMException && loginError.name === "AbortError" ? "Sign in timed out. Please try again." : "Sign in failed. Please try again.");
+    } finally {
+      window.clearTimeout(timeout);
       setLoading(false);
-      return;
     }
-
-    const sessionResponse = await fetch("/api/v1/auth/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ accessToken: data.session.access_token })
-    });
-
-    if (!sessionResponse.ok) {
-      const payload = await sessionResponse.json().catch(() => null);
-      setError(payload?.message ?? "This user is not active in Resourcify.");
-      setLoading(false);
-      return;
-    }
-
-    router.push(nextPath);
-    router.refresh();
   }
 
   return (

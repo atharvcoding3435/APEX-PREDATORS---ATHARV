@@ -20,6 +20,19 @@ export function createBrowserSupabaseClient() {
   return createClient(supabaseUrl, supabaseAnonKey);
 }
 
+export function createAnonSupabaseClient() {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Supabase public environment variables are not configured.");
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
+    }
+  });
+}
+
 export function createServiceSupabaseClient() {
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     throw new Error("Supabase service environment variables are not configured.");

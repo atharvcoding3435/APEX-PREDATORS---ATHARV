@@ -46,7 +46,7 @@ function mapProfile(row: AuthProfileRow): AdminUser {
   };
 }
 
-async function getProfileForUser(userId: string, fallbackEmail?: string | null) {
+export async function getProfileForUser(userId: string, fallbackEmail?: string | null) {
   if (!isSupabaseServiceConfigured()) {
     return null;
   }
