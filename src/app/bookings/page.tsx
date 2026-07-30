@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarPlus } from "lucide-react";
+import { CalendarPlus, ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
 import { bookings, getBookingResource } from "@/lib/mock-data";
@@ -19,16 +19,17 @@ export default function BookingsPage() {
       }
     >
       <section className="overflow-hidden rounded-lg border border-white/10 bg-ink-900">
-        <div className="grid grid-cols-[1fr_130px_150px] border-b border-white/10 px-4 py-3 text-sm font-bold text-[#A0A0B8] max-md:hidden">
+        <div className="grid grid-cols-[1fr_130px_150px_120px] border-b border-white/10 px-4 py-3 text-sm font-bold text-[#A0A0B8] max-md:hidden">
           <span>Booking</span>
           <span>Time</span>
           <span>Status</span>
+          <span>Action</span>
         </div>
         {bookings.map((booking) => {
           const resource = getBookingResource(booking);
 
           return (
-            <article key={booking.id} className="grid gap-3 border-b border-white/10 px-4 py-4 last:border-b-0 md:grid-cols-[1fr_130px_150px] md:items-center">
+            <article key={booking.id} className="grid gap-3 border-b border-white/10 px-4 py-4 last:border-b-0 md:grid-cols-[1fr_130px_150px_120px] md:items-center">
               <div>
                 <h3 className="font-bold">{resource?.name ?? "Unknown resource"}</h3>
                 <p className="text-sm text-[#A0A0B8]">{booking.purpose}</p>
@@ -38,6 +39,13 @@ export default function BookingsPage() {
                 {booking.startTime} - {booking.endTime}
               </p>
               <StatusBadge kind="booking" status={booking.status} />
+              <Link
+                href={`/bookings/${booking.id}`}
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded border border-white/10 bg-white/[0.03] px-3 text-sm font-bold hover:bg-white/10"
+              >
+                View
+                <ChevronRight size={17} aria-hidden="true" />
+              </Link>
             </article>
           );
         })}

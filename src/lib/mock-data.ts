@@ -142,6 +142,10 @@ export function getResource(resourceId: string) {
   return resources.find((resource) => resource.id === resourceId);
 }
 
+export function getBooking(bookingId: string) {
+  return bookings.find((booking) => booking.id === bookingId);
+}
+
 export function getBookingResource(booking: Booking) {
   return getResource(booking.resourceId);
 }
