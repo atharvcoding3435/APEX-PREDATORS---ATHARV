@@ -41,7 +41,7 @@ export default function Home() {
             <h1 className="text-2xl font-bold">Resourcify</h1>
           </div>
           <Link
-            href="/login"
+            href="/dashboard"
             className="inline-flex min-h-11 items-center gap-2 rounded bg-signal-success px-4 text-sm font-bold text-ink-950 transition hover:bg-white"
           >
             Open App
@@ -63,7 +63,7 @@ export default function Home() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                href="/login"
+                href="/dashboard"
                 className="inline-flex min-h-12 items-center gap-2 rounded bg-signal-success px-5 font-bold text-ink-950 transition hover:bg-white"
               >
                 Launch Workspace

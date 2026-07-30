@@ -1,7 +1,11 @@
 import { redirect } from "next/navigation";
-import { getAuthenticatedUserFromCookies } from "@/lib/auth";
+import { getAuthenticatedUserFromCookies, isAuthEnforced } from "@/lib/auth";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  if (!isAuthEnforced()) {
+    return children;
+  }
+
   const user = await getAuthenticatedUserFromCookies();
 
   if (!user) {

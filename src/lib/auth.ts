@@ -8,6 +8,10 @@ import type { AdminUser, UserRole } from "@/lib/types";
 export const accessTokenCookie = "resourcify-access-token";
 export const appSessionCookie = "resourcify-app-session";
 
+export function isAuthEnforced() {
+  return process.env.AUTH_ENFORCED === "true";
+}
+
 type AuthProfileRow = {
   id: string;
   name?: string | null;
@@ -148,6 +152,10 @@ export async function getAuthenticatedUserFromCookies() {
 }
 
 export async function requireAdmin(request: Request) {
+  if (!isAuthEnforced()) {
+    return null;
+  }
+
   const user = await getAuthenticatedUserFromRequest(request);
 
   if (user?.role === "admin" && user.isActive) {

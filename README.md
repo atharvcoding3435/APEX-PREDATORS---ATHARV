@@ -31,6 +31,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 ```
 
+Authentication is currently parked for sprint velocity. The deployed MVP runs in demo-open mode unless this optional variable is set:
+
+```bash
+AUTH_ENFORCED=true
+```
+
 For production verification:
 
 ```bash

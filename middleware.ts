@@ -6,6 +6,10 @@ const appSessionCookie = "resourcify-app-session";
 const protectedPaths = ["/dashboard", "/resources", "/bookings", "/profile", "/admin"];
 
 export function middleware(request: NextRequest) {
+  if (process.env.AUTH_ENFORCED !== "true") {
+    return NextResponse.next();
+  }
+
   const isProtectedPath = protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path));
 
   if (!isProtectedPath || request.cookies.has(accessTokenCookie) || request.cookies.has(appSessionCookie)) {
