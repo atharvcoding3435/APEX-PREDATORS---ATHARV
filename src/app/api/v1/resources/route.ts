@@ -79,8 +79,7 @@ function toSupabaseResourcePayload(input: z.infer<typeof resourceSchema> | Parti
     capacity: input.capacity,
     schedule: input.schedule ? { label: input.schedule } : undefined,
     color: input.status ? colorForStatus(input.status) : undefined,
-    is_active: typeof input.isActive === "boolean" ? input.isActive : input.maintenanceStatus ? input.maintenanceStatus === "available" : undefined,
-    department: input.department
+    is_active: typeof input.isActive === "boolean" ? input.isActive : input.maintenanceStatus ? input.maintenanceStatus === "available" : undefined
   };
 }
 
