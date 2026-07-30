@@ -9,7 +9,9 @@ Live app: https://resourcify-apex.vercel.app
 - Next.js 14
 - TypeScript
 - Tailwind CSS
-- Supabase-ready API and migration foundation
+- Supabase Auth with email/password sessions
+- Supabase-backed resources, users, and bookings read layer
+- Role-checked admin APIs
 - Vercel deployment
 
 ## Local Setup
@@ -20,6 +22,14 @@ npm run dev
 ```
 
 Open http://localhost:3000.
+
+Required environment variables:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+```
 
 For production verification:
 

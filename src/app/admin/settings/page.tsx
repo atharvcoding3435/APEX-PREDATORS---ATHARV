@@ -15,10 +15,7 @@ export default function AdminSettingsPage() {
   async function saveSettings() {
     const response = await fetch("/api/v1/admin/settings", {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        "x-user-role": "admin"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         maxBookingDurationHours: maxDuration,
         maxAdvanceBookingDays: advanceDays,

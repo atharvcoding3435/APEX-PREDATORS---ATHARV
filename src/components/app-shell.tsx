@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SessionActions } from "@/components/session-actions";
 import {
   BarChart3,
   CalendarDays,
@@ -91,7 +92,10 @@ export function AppShell({ active, title, eyebrow, variant, description, actions
               <h2 className="text-3xl font-black leading-tight">{title}</h2>
               {description ? <p className="mt-2 text-sm text-[#A0A0B8]">{description}</p> : null}
             </div>
-            {actions ? <div className="shrink-0">{actions}</div> : null}
+            <div className="flex shrink-0 flex-wrap items-center gap-3">
+              {actions}
+              <SessionActions />
+            </div>
           </header>
           {children}
         </section>

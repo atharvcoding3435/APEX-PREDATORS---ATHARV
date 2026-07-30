@@ -34,7 +34,7 @@ export function AdminUsersClient({ initialUsers, bookings }: { initialUsers: Adm
     const nextActive = !user.isActive;
     const response = await fetch("/api/v1/admin/users", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json", "x-user-role": "admin" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: userId, isActive: nextActive })
     });
 

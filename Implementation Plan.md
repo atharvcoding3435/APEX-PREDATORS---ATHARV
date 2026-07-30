@@ -21,12 +21,12 @@ Each sprint should deliver one reviewable feature:
 | Project Overview PDF | Team-facing project overview generated |
 | Resource Role Architecture | Public resources are read-only; Admin Resources owns CRUD |
 | Attendance Workflow Removal | Retired attendance workflow removed from app, schema, dependencies, and docs |
+| Auth Foundation | Supabase email/password login, session cookies, role loading, protected admin routes, and verified admin APIs |
 
 ## Near-Term Sprint Backlog
 
 | Sprint | Feature |
 |---|---|
-| Auth Foundation | Supabase auth, role loading, protected routes |
 | Persistent Bookings | Replace mock booking creation with Supabase writes |
 | Admin Approvals | Approve/reject actions backed by API and audit logs |
 | Waitlist | Join waitlist, offer slots, accept/expire offers |

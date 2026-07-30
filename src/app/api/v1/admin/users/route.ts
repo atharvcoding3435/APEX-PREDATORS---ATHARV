@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/admin-utils";
+import { requireAdmin } from "@/lib/auth";
 import { getUsersData } from "@/lib/data";
 import { users } from "@/lib/mock-data";
 
@@ -10,7 +10,7 @@ const updateUserSchema = z.object({
 });
 
 export async function GET(request: Request) {
-  const forbidden = requireAdmin(request);
+  const forbidden = await requireAdmin(request);
 
   if (forbidden) {
     return forbidden;
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const forbidden = requireAdmin(request);
+  const forbidden = await requireAdmin(request);
 
   if (forbidden) {
     return forbidden;

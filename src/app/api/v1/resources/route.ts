@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { resources } from "@/lib/mock-data";
-import { requireAdmin } from "@/lib/admin-utils";
+import { requireAdmin } from "@/lib/auth";
 import { getResourcesData } from "@/lib/data";
 import { isSupabaseServiceConfigured } from "@/lib/supabase";
 import type { Resource } from "@/lib/types";
@@ -48,7 +48,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const forbidden = requireAdmin(request);
+  const forbidden = await requireAdmin(request);
 
   if (forbidden) {
     return forbidden;
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const forbidden = requireAdmin(request);
+  const forbidden = await requireAdmin(request);
 
   if (forbidden) {
     return forbidden;
@@ -133,7 +133,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const forbidden = requireAdmin(request);
+  const forbidden = await requireAdmin(request);
 
   if (forbidden) {
     return forbidden;

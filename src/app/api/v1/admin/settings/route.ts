@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/admin-utils";
+import { requireAdmin } from "@/lib/auth";
 
 const settingsSchema = z.object({
   maxBookingDurationHours: z.number().int().min(1).max(8),
@@ -10,8 +10,8 @@ const settingsSchema = z.object({
   approvalRequired: z.boolean()
 });
 
-export function GET(request: Request) {
-  const forbidden = requireAdmin(request);
+export async function GET(request: Request) {
+  const forbidden = await requireAdmin(request);
 
   if (forbidden) {
     return forbidden;
@@ -30,7 +30,7 @@ export function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const forbidden = requireAdmin(request);
+  const forbidden = await requireAdmin(request);
 
   if (forbidden) {
     return forbidden;
