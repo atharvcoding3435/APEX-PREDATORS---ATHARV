@@ -1,7 +1,9 @@
 import { AppShell } from "@/components/app-shell";
-import { bookings, getBookingResource } from "@/lib/mock-data";
+import { findResourceById, getAppData } from "@/lib/data";
 
-export default function AuditPage() {
+export default async function AuditPage() {
+  const { bookings, resources } = await getAppData();
+
   return (
     <AppShell
       active="/admin/audit"
@@ -11,7 +13,7 @@ export default function AuditPage() {
     >
       <section className="overflow-hidden rounded-lg border border-white/10 bg-ink-900">
         {bookings.map((booking) => {
-          const resource = getBookingResource(booking);
+          const resource = findResourceById(resources, booking.resourceId);
 
           return (
             <article key={booking.id} className="grid gap-2 border-b border-white/10 px-4 py-4 last:border-b-0 md:grid-cols-[180px_1fr_180px] md:items-center">

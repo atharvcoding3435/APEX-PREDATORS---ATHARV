@@ -3,9 +3,11 @@ import { Bell, CheckCircle2, Clock3, ListFilter, Plus, Search } from "lucide-rea
 import { AppShell } from "@/components/app-shell";
 import { ResourceCard } from "@/components/resource-card";
 import { StatusBadge } from "@/components/status-badge";
-import { bookings, getBookingResource, resources, waitlist } from "@/lib/mock-data";
+import { findResourceById, getAppData } from "@/lib/data";
+import { waitlist } from "@/lib/mock-data";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const { bookings, resources } = await getAppData();
   const availableCount = resources.filter((resource) => resource.status === "available").length;
   const pendingCount = bookings.filter((booking) => booking.status === "pending").length;
   const approvedCount = bookings.filter((booking) => booking.status === "approved").length;
@@ -70,7 +72,7 @@ export default function DashboardPage() {
           <h3 className="text-xl font-bold">Upcoming bookings</h3>
           <div className="mt-4 space-y-3">
             {bookings.map((booking) => {
-              const resource = getBookingResource(booking);
+              const resource = findResourceById(resources, booking.resourceId);
 
               return (
                 <article key={booking.id} className="rounded-lg border border-white/10 bg-ink-850 p-3">

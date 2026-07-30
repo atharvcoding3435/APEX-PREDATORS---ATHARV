@@ -1,26 +1,45 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarClock, Check, Shuffle, X } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
-import { bookings as initialBookings, getBookingResource } from "@/lib/mock-data";
+import { bookings as initialBookings, resources as initialResources } from "@/lib/mock-data";
 import { findBookingConflict, formatTimeRange, suggestBookingAlternatives } from "@/lib/booking-rules";
-import { resources } from "@/lib/mock-data";
-import type { Booking, BookingStatus } from "@/lib/types";
+import type { Booking, BookingStatus, Resource } from "@/lib/types";
 
 export default function AdminConflictsPage() {
   const [bookings, setBookings] = useState<Booking[]>(initialBookings);
+  const [resources, setResources] = useState<Resource[]>(initialResources);
+
+  useEffect(() => {
+    async function loadData() {
+      const [bookingResponse, resourceResponse] = await Promise.all([
+        fetch("/api/v1/bookings"),
+        fetch("/api/v1/resources")
+      ]);
+      const [bookingPayload, resourcePayload] = await Promise.all([
+        bookingResponse.json(),
+        resourceResponse.json()
+      ]);
+
+      if (Array.isArray(bookingPayload.data)) setBookings(bookingPayload.data);
+      if (Array.isArray(resourcePayload.data)) setResources(resourcePayload.data);
+    }
+
+    loadData().catch(() => undefined);
+  }, []);
+
   const conflicts = useMemo(
     () =>
       bookings
         .map((booking) => ({
           booking,
-          resource: getBookingResource(booking),
+          resource: resources.find((resource) => resource.id === booking.resourceId),
           conflict: findBookingConflict(booking, bookings.filter((item) => item.id !== booking.id))
         }))
         .filter((item) => item.conflict),
-    [bookings]
+    [bookings, resources]
   );
 
   function updateStatus(bookingId: string, status: BookingStatus) {
@@ -67,7 +86,7 @@ export default function AdminConflictsPage() {
         <section className="grid gap-4">
           {conflicts.map(({ booking, resource, conflict }) => {
             if (!conflict) return null;
-            const conflictingResource = getBookingResource(conflict);
+            const conflictingResource = resources.find((resource) => resource.id === conflict.resourceId);
             const suggestions = suggestBookingAlternatives(booking, resources, bookings);
 
             return (

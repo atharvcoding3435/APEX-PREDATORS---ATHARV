@@ -2,9 +2,11 @@ import Link from "next/link";
 import { CalendarPlus, ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
-import { bookings, getBookingResource } from "@/lib/mock-data";
+import { findResourceById, getAppData } from "@/lib/data";
 
-export default function BookingsPage() {
+export default async function BookingsPage() {
+  const { bookings, resources } = await getAppData();
+
   return (
     <AppShell
       active="/bookings"
@@ -26,7 +28,7 @@ export default function BookingsPage() {
           <span>Action</span>
         </div>
         {bookings.map((booking) => {
-          const resource = getBookingResource(booking);
+          const resource = findResourceById(resources, booking.resourceId);
 
           return (
             <article key={booking.id} className="grid gap-3 border-b border-white/10 px-4 py-4 last:border-b-0 md:grid-cols-[1fr_130px_150px_120px] md:items-center">

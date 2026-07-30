@@ -8,6 +8,10 @@ export function isSupabaseConfigured() {
   return Boolean(supabaseUrl && supabaseAnonKey);
 }
 
+export function isSupabaseServiceConfigured() {
+  return Boolean(supabaseUrl && supabaseServiceRoleKey);
+}
+
 export function createBrowserSupabaseClient() {
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error("Supabase public environment variables are not configured.");

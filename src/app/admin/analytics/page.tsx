@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/app-shell";
-import { bookings, getBookingResource, resources } from "@/lib/mock-data";
+import { findResourceById, getAppData } from "@/lib/data";
 import { cn, titleCase } from "@/lib/utils";
 
 function Bar({ label, value, max, tone = "bg-signal-success" }: { label: string; value: number; max: number; tone?: string }) {
@@ -18,7 +18,8 @@ function Bar({ label, value, max, tone = "bg-signal-success" }: { label: string;
   );
 }
 
-export default function AdminAnalyticsPage() {
+export default async function AdminAnalyticsPage() {
+  const { bookings, resources } = await getAppData();
   const mostBooked = resources.reduce((top, resource) => (resource.utilization > top.utilization ? resource : top), resources[0]);
   const leastUsed = resources.reduce((low, resource) => (resource.utilization < low.utilization ? resource : low), resources[0]);
   const statusCounts = bookings.reduce<Record<string, number>>((counts, booking) => {
@@ -80,7 +81,8 @@ export default function AdminAnalyticsPage() {
           <h3 className="mb-4 text-xl font-black">Peak booking hours</h3>
           <div className="space-y-4">
             {Object.entries(peakHours).map(([hour, count]) => {
-              const resource = getBookingResource(bookings.find((booking) => booking.startTime === hour)!);
+              const booking = bookings.find((item) => item.startTime === hour);
+              const resource = booking ? findResourceById(resources, booking.resourceId) : null;
               return <Bar key={hour} label={`${hour} · ${resource?.type ?? "resource"}`} value={count} max={maxHour} />;
             })}
           </div>

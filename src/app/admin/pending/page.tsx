@@ -1,8 +1,9 @@
 import { Check, X } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
-import { bookings, getBookingResource } from "@/lib/mock-data";
+import { findResourceById, getAppData } from "@/lib/data";
 
-export default function PendingApprovalsPage() {
+export default async function PendingApprovalsPage() {
+  const { bookings, resources } = await getAppData();
   const pending = bookings.filter((booking) => booking.status === "pending");
 
   return (
@@ -14,7 +15,7 @@ export default function PendingApprovalsPage() {
     >
       <section className="grid gap-4">
         {pending.map((booking) => {
-          const resource = getBookingResource(booking);
+          const resource = findResourceById(resources, booking.resourceId);
 
           return (
             <article key={booking.id} className="rounded-lg border border-white/10 bg-ink-900 p-4">

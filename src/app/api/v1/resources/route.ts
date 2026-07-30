@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { resources } from "@/lib/mock-data";
 import { requireAdmin } from "@/lib/admin-utils";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { getResourcesData } from "@/lib/data";
+import { isSupabaseServiceConfigured } from "@/lib/supabase";
 import type { Resource } from "@/lib/types";
 
 const resourceSchema = z.object({
@@ -37,10 +38,12 @@ function colorForStatus(status: Resource["status"]) {
   return "#FF4444";
 }
 
-export function GET() {
+export async function GET() {
+  const data = await getResourcesData();
+
   return NextResponse.json({
-    data: resources,
-    source: isSupabaseConfigured() ? "mock-until-supabase-rpc-is-enabled" : "mock"
+    data,
+    source: isSupabaseServiceConfigured() ? "supabase" : "mock"
   });
 }
 
@@ -76,7 +79,7 @@ export async function POST(request: Request) {
     {
       success: true,
       data: resource,
-      source: isSupabaseConfigured() ? "validated-mock-until-supabase-rpc-is-enabled" : "validated-mock"
+      source: isSupabaseServiceConfigured() ? "validated-supabase-ready" : "validated-mock"
     },
     { status: 201 }
   );
@@ -125,7 +128,7 @@ export async function PATCH(request: Request) {
   return NextResponse.json({
     success: true,
     data: updatedResource,
-    source: isSupabaseConfigured() ? "validated-mock-until-supabase-rpc-is-enabled" : "validated-mock"
+    source: isSupabaseServiceConfigured() ? "validated-supabase-ready" : "validated-mock"
   });
 }
 
@@ -166,6 +169,6 @@ export async function DELETE(request: Request) {
   return NextResponse.json({
     success: true,
     data: { ...existingResource, isActive: false },
-    source: isSupabaseConfigured() ? "validated-mock-until-supabase-rpc-is-enabled" : "validated-mock"
+    source: isSupabaseServiceConfigured() ? "validated-supabase-ready" : "validated-mock"
   });
 }

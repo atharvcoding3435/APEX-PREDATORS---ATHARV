@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarClock, Check, Eye, ListFilter, Search, X } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
-import { bookings as initialBookings, getBookingResource, resources } from "@/lib/mock-data";
-import type { Booking, BookingStatus } from "@/lib/types";
+import { bookings as initialBookings, resources as initialResources } from "@/lib/mock-data";
+import type { Booking, BookingStatus, Resource } from "@/lib/types";
 import { formatTimeRange } from "@/lib/booking-rules";
 import { cn, titleCase } from "@/lib/utils";
 
@@ -15,6 +15,7 @@ const statusFilters: StatusFilter[] = ["all", "pending", "approved", "active", "
 
 export default function AdminBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>(initialBookings);
+  const [resources, setResources] = useState<Resource[]>(initialResources);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [department, setDepartment] = useState("all");
@@ -22,13 +23,31 @@ export default function AdminBookingsPage() {
   const [resourceId, setResourceId] = useState("all");
   const [rescheduleBooking, setRescheduleBooking] = useState<Booking | null>(null);
 
+  useEffect(() => {
+    async function loadData() {
+      const [bookingResponse, resourceResponse] = await Promise.all([
+        fetch("/api/v1/bookings"),
+        fetch("/api/v1/resources")
+      ]);
+      const [bookingPayload, resourcePayload] = await Promise.all([
+        bookingResponse.json(),
+        resourceResponse.json()
+      ]);
+
+      if (Array.isArray(bookingPayload.data)) setBookings(bookingPayload.data);
+      if (Array.isArray(resourcePayload.data)) setResources(resourcePayload.data);
+    }
+
+    loadData().catch(() => undefined);
+  }, []);
+
   const departments = Array.from(new Set(bookings.map((booking) => booking.department)));
 
   const filteredBookings = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     return bookings.filter((booking) => {
-      const resource = getBookingResource(booking);
+      const resource = resources.find((item) => item.id === booking.resourceId);
       const matchesSearch =
         !query ||
         [booking.id, booking.requester, booking.department, booking.purpose, resource?.name ?? ""]
@@ -42,7 +61,7 @@ export default function AdminBookingsPage() {
 
       return matchesSearch && matchesStatus && matchesDepartment && matchesDate && matchesResource;
     });
-  }, [bookings, date, department, resourceId, search, status]);
+  }, [bookings, date, department, resourceId, resources, search, status]);
 
   function updateStatus(bookingId: string, nextStatus: BookingStatus) {
     setBookings((current) =>
@@ -123,7 +142,7 @@ export default function AdminBookingsPage() {
           <span>Actions</span>
         </div>
         {filteredBookings.map((booking) => {
-          const resource = getBookingResource(booking);
+          const resource = resources.find((item) => item.id === booking.resourceId);
 
           return (
             <article key={booking.id} className="grid gap-3 border-b border-white/10 px-4 py-4 last:border-b-0 xl:grid-cols-[1fr_150px_130px_130px_210px] xl:items-center">

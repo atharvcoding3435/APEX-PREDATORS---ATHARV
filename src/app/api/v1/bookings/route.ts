@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { bookings, getResource, resources } from "@/lib/mock-data";
 import { requireAdmin } from "@/lib/admin-utils";
+import { getBookingsData } from "@/lib/data";
+import { isSupabaseServiceConfigured } from "@/lib/supabase";
 import {
   findBookingConflict,
   formatTimeRange,
@@ -34,8 +36,11 @@ function getRequestOriginDate(request: Request) {
   return demoNow ? new Date(demoNow) : new Date();
 }
 
-export function GET() {
-  return NextResponse.json({ data: bookings });
+export async function GET() {
+  return NextResponse.json({
+    data: await getBookingsData(),
+    source: isSupabaseServiceConfigured() ? "supabase" : "mock"
+  });
 }
 
 export async function POST(request: Request) {

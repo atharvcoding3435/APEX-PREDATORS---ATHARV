@@ -13,10 +13,11 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
-import { activityLogs, bookings, getBookingResource, resources, users } from "@/lib/mock-data";
+import { findResourceById, getAppData } from "@/lib/data";
 import { findBookingConflict, formatTimeRange } from "@/lib/booking-rules";
 
-export default function AdminDashboardPage() {
+export default async function AdminDashboardPage() {
+  const { activities, bookings, resources, users } = await getAppData();
   const today = "2026-08-01";
   const activeResources = resources.filter((resource) => resource.isActive);
   const activeBookings = bookings.filter((booking) => booking.status === "approved" || booking.status === "active");
@@ -95,7 +96,7 @@ export default function AdminDashboardPage() {
           </div>
           <div className="space-y-3">
             {todaysBookings.map((booking) => {
-              const resource = getBookingResource(booking);
+              const resource = findResourceById(resources, booking.resourceId);
 
               return (
                 <article key={booking.id} className="grid gap-3 rounded border border-white/10 bg-ink-850 p-3 md:grid-cols-[1fr_auto_auto] md:items-center">
@@ -123,7 +124,7 @@ export default function AdminDashboardPage() {
             </Link>
           </div>
           <div className="space-y-3">
-            {activityLogs.map((activity) => (
+            {activities.map((activity) => (
               <article key={activity.id} className="rounded border border-white/10 bg-ink-850 p-3">
                 <p className="font-bold">
                   {activity.actor} {activity.action} {activity.target}
