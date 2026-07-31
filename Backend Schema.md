@@ -12,6 +12,7 @@
 - `name text not null`
 - `department text not null`
 - `avatar_url text`
+- `is_active boolean default true`
 - `created_at timestamptz`
 - `updated_at timestamptz`
 - `last_login_at timestamptz`
@@ -74,6 +75,12 @@
 - `ip_address text`
 - `user_agent text`
 - `created_at timestamptz`
+
+### system_settings
+
+- `key text primary key`
+- `value jsonb not null`
+- `updated_at timestamptz`
 
 ## Conflict Trigger
 

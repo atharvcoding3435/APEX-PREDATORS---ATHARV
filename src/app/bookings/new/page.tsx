@@ -100,18 +100,18 @@ export default function NewBookingPage() {
 
   const selectableResources = useMemo(
     () => resources.filter((resource) => getResourceAccess(requesterRole, resource).canBook),
-    [requesterRole]
+    [requesterRole, resources]
   );
   const selectedResource = resources.find((resource) => resource.id === resourceId);
   const selectedAccess = selectedResource ? getResourceAccess(requesterRole, selectedResource) : null;
-  const bookingInput = { resourceId, date, startTime, endTime };
-  const clientConflict = useMemo(() => findBookingConflict(bookingInput, bookings), [date, endTime, resourceId, startTime]);
+  const bookingInput = useMemo(() => ({ resourceId, date, startTime, endTime }), [date, endTime, resourceId, startTime]);
+  const clientConflict = useMemo(() => findBookingConflict(bookingInput, bookings), [bookingInput, bookings]);
   const conflict = serverConflict?.conflictingBooking ?? clientConflict;
   const conflictResource = clientConflict ? resources.find((resource) => resource.id === clientConflict.resourceId) : selectedResource;
-  const validation = useMemo(() => validateBookingRequest(bookingInput), [date, endTime, resourceId, startTime]);
+  const validation = useMemo(() => validateBookingRequest(bookingInput), [bookingInput]);
   const alternatives = useMemo(
     () => serverConflict?.suggestions ?? (clientConflict ? suggestBookingAlternatives(bookingInput, resources, bookings) : []),
-    [clientConflict, date, endTime, resourceId, serverConflict, startTime]
+    [bookingInput, bookings, clientConflict, resources, serverConflict]
   );
   const status = getDefaultBookingStatus(requesterRole, selectedResource);
   const slotStatus = getSlotStatus(bookingInput, bookings);

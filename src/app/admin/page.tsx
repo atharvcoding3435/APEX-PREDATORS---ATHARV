@@ -91,7 +91,7 @@ export default async function AdminDashboardPage() {
       <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
         <section className="rounded-lg border border-white/10 bg-ink-900 p-4">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h3 className="text-xl font-black">Today's bookings</h3>
+            <h3 className="text-xl font-black">Today&apos;s bookings</h3>
             <Link href="/admin/bookings" className="text-sm font-bold text-signal-success hover:text-white">
               Manage all
             </Link>

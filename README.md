@@ -10,7 +10,7 @@ Live app: https://resourcify-apex.vercel.app
 - TypeScript
 - Tailwind CSS
 - Supabase Auth with email/password sessions
-- Supabase-backed resources, users, and bookings read layer
+- Supabase-backed resources, bookings, admin settings, and user management APIs
 - Role-checked admin APIs
 - Vercel deployment
 
@@ -42,6 +42,18 @@ For production verification:
 ```bash
 npm run build
 ```
+
+## Supabase Migrations
+
+Apply the SQL files in `supabase/migrations` in order:
+
+1. `0001_initial_schema.sql`
+2. `0002_expand_public_user_roles.sql`
+3. `0003_user_status.sql`
+4. `0004_system_settings.sql`
+
+`0003_user_status.sql` enables persistent admin user enable/disable.
+`0004_system_settings.sql` enables persistent booking settings.
 
 ## Sprint Workflow
 
