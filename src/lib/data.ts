@@ -114,6 +114,43 @@ function mapUser(row: DbUser, bookingCount = 0): AdminUser {
   };
 }
 
+async function getAuthUserStates() {
+  if (!isSupabaseServiceConfigured()) {
+    return new Map<string, Pick<AdminUser, "email" | "isActive" | "lastActive">>();
+  }
+
+  const supabase = createServiceSupabaseClient();
+  const states = new Map<string, Pick<AdminUser, "email" | "isActive" | "lastActive">>();
+  let page = 1;
+
+  while (page <= 5) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+
+    if (error || !data) {
+      break;
+    }
+
+    data.users.forEach((user) => {
+      const bannedUntil = user.banned_until ? new Date(user.banned_until).getTime() : 0;
+      const isBanned = bannedUntil > Date.now();
+
+      states.set(user.id, {
+        email: user.email ?? "",
+        isActive: !isBanned,
+        lastActive: user.last_sign_in_at ? formatRelativeDate(user.last_sign_in_at) : "Not yet"
+      });
+    });
+
+    if (data.users.length < 1000) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  return states;
+}
+
 function mapBooking(row: DbBooking, usersById: Map<string, AdminUser>): Booking {
   const requesterId = asString(row.requester_id ?? row.requesterId);
   const user = usersById.get(requesterId);
@@ -228,13 +265,28 @@ export async function getUsersData(): Promise<AdminUser[]> {
       readSupabaseTable<DbUser>("users"),
       readSupabaseTable<DbBooking>("bookings")
     ]);
+    const authUserStates = await getAuthUserStates();
     const counts = bookingRows.reduce<Map<string, number>>((map, booking) => {
       const requesterId = asString(booking.requester_id ?? booking.requesterId);
       map.set(requesterId, (map.get(requesterId) ?? 0) + 1);
       return map;
     }, new Map());
 
-    return userRows.map((user) => mapUser(user, counts.get(asString(user.id)) ?? 0));
+    return userRows.map((user) => {
+      const mappedUser = mapUser(user, counts.get(asString(user.id)) ?? 0);
+      const authState = authUserStates.get(mappedUser.id);
+
+      if (!authState) {
+        return mappedUser;
+      }
+
+      return {
+        ...mappedUser,
+        email: mappedUser.email || authState.email,
+        isActive: asBoolean(user.is_active ?? user.isActive, authState.isActive),
+        lastActive: mappedUser.lastActive === "Not yet" ? authState.lastActive : mappedUser.lastActive
+      };
+    });
   } catch {
     return mockUsers;
   }

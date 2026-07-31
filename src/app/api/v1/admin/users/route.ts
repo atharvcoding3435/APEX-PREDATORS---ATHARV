@@ -60,6 +60,36 @@ export async function PATCH(request: Request) {
       .select("*")
       .single();
 
+    if (!error && data) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          ...user,
+          name: String(data.name ?? data.full_name ?? user.name),
+          email: String(data.email ?? user.email),
+          role: user.role,
+          department: String(data.department ?? user.department),
+          isActive: Boolean(data.is_active ?? parsed.data.isActive),
+          lastActive: String(data.last_login_at ?? user.lastActive)
+        },
+        source: "supabase"
+      });
+    }
+
+    if (error?.message.includes("is_active")) {
+      const { data: authData, error: authError } = await supabase.auth.admin.updateUserById(parsed.data.id, {
+        ban_duration: parsed.data.isActive ? "none" : "876000h"
+      });
+
+      if (!authError && authData.user) {
+        return NextResponse.json({
+          success: true,
+          data: { ...user, isActive: parsed.data.isActive },
+          source: "supabase-auth"
+        });
+      }
+    }
+
     if (error || !data) {
       return NextResponse.json(
         {
@@ -70,20 +100,6 @@ export async function PATCH(request: Request) {
         { status: 500 }
       );
     }
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        ...user,
-        name: String(data.name ?? data.full_name ?? user.name),
-        email: String(data.email ?? user.email),
-        role: user.role,
-        department: String(data.department ?? user.department),
-        isActive: Boolean(data.is_active ?? parsed.data.isActive),
-        lastActive: String(data.last_login_at ?? user.lastActive)
-      },
-      source: "supabase"
-    });
   }
 
   return NextResponse.json({ success: true, data: { ...user, isActive: parsed.data.isActive }, source: "mock" });
