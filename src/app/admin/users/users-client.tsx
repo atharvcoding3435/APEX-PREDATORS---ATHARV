@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Eye, Power, Search } from "lucide-react";
+import { Eye, Loader2, Power, Search } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { userRoles } from "@/lib/roles";
 import type { AdminUser, Booking, UserRole } from "@/lib/types";
@@ -16,6 +16,8 @@ export function AdminUsersClient({ initialUsers, bookings }: { initialUsers: Adm
   const [search, setSearch] = useState("");
   const [role, setRole] = useState<RoleFilter>("all");
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
 
   const filteredUsers = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -33,15 +35,24 @@ export function AdminUsersClient({ initialUsers, bookings }: { initialUsers: Adm
     if (!user) return;
 
     const nextActive = !user.isActive;
+    setUpdatingUserId(userId);
+    setMessage("");
+
     const response = await fetch("/api/v1/admin/users", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: userId, isActive: nextActive })
     });
+    const payload = await response.json().catch(() => null);
 
-    if (response.ok) {
-      setUsers((current) => current.map((item) => (item.id === userId ? { ...item, isActive: nextActive } : item)));
+    if (response.ok && payload?.data) {
+      setUsers((current) => current.map((item) => (item.id === userId ? payload.data : item)));
+      setMessage(nextActive ? "User enabled." : "User disabled.");
+    } else {
+      setMessage(payload?.message ?? "User status could not be updated.");
     }
+
+    setUpdatingUserId(null);
   }
 
   return (
@@ -76,11 +87,17 @@ export function AdminUsersClient({ initialUsers, bookings }: { initialUsers: Adm
         </div>
       </section>
 
+      {message ? (
+        <div className="mb-5 rounded-lg border border-white/10 bg-ink-900 p-3 text-sm font-bold text-[#C9C9DA]" role="status">
+          {message}
+        </div>
+      ) : null}
+
       <section className="overflow-hidden rounded-lg border border-white/10 bg-ink-900">
         <div className="hidden grid-cols-[1.2fr_120px_1fr_120px_120px_140px] gap-3 border-b border-white/10 px-4 py-3 text-xs font-black uppercase text-[#A0A0B8] lg:grid">
           <span>User</span><span>Role</span><span>Department</span><span>Bookings</span><span>Status</span><span>Actions</span>
         </div>
-        {filteredUsers.map((user) => (
+        {filteredUsers.length > 0 ? filteredUsers.map((user) => (
           <article key={user.id} className="grid gap-3 border-b border-white/10 px-4 py-4 last:border-b-0 lg:grid-cols-[1.2fr_120px_1fr_120px_120px_140px] lg:items-center">
             <div><h3 className="font-bold">{user.name}</h3><p className="text-sm text-[#A0A0B8]">{user.email}</p></div>
             <p className="text-sm font-bold text-signal-info">{titleCase(user.role)}</p>
@@ -89,10 +106,16 @@ export function AdminUsersClient({ initialUsers, bookings }: { initialUsers: Adm
             <span className={cn("w-fit rounded border px-2 py-1 text-xs font-bold", user.isActive ? "border-signal-success/40 bg-signal-success/10 text-signal-success" : "border-signal-danger/40 bg-signal-danger/10 text-signal-danger")}>{user.isActive ? "Enabled" : "Disabled"}</span>
             <div className="flex gap-2">
               <button className="grid min-h-10 w-10 place-items-center rounded border border-white/10 bg-ink-850 hover:bg-white/5" onClick={() => setSelectedUser(user)} title="View booking history"><Eye size={17} aria-hidden="true" /></button>
-              <button className="grid min-h-10 w-10 place-items-center rounded border border-white/10 bg-ink-850 hover:bg-white/5" onClick={() => toggleUser(user.id)} title={user.isActive ? "Disable user" : "Enable user"}><Power size={17} aria-hidden="true" /></button>
+              <button className="grid min-h-10 w-10 place-items-center rounded border border-white/10 bg-ink-850 hover:bg-white/5 disabled:opacity-60" disabled={updatingUserId === user.id} onClick={() => toggleUser(user.id)} title={user.isActive ? "Disable user" : "Enable user"}>
+                {updatingUserId === user.id ? <Loader2 className="animate-spin" size={17} aria-hidden="true" /> : <Power size={17} aria-hidden="true" />}
+              </button>
             </div>
           </article>
-        ))}
+        )) : (
+          <div className="p-6 text-sm text-[#A0A0B8]">
+            No users match the current search and role filter.
+          </div>
+        )}
       </section>
 
       {selectedUser ? (
@@ -101,12 +124,16 @@ export function AdminUsersClient({ initialUsers, bookings }: { initialUsers: Adm
             <h3 className="text-xl font-black">{selectedUser.name}</h3>
             <p className="text-sm text-[#A0A0B8]">{selectedUser.department} · Last active {selectedUser.lastActive}</p>
             <div className="mt-4 space-y-2">
-              {bookings.filter((booking) => booking.requester === selectedUser.name).map((booking) => (
+              {bookings.filter((booking) => booking.requester === selectedUser.name).length > 0 ? bookings.filter((booking) => booking.requester === selectedUser.name).map((booking) => (
                 <article key={booking.id} className="rounded border border-white/10 bg-ink-850 p-3">
                   <p className="font-bold">{booking.purpose}</p>
                   <p className="text-sm text-[#A0A0B8]">{booking.date} · {booking.status}</p>
                 </article>
-              ))}
+              )) : (
+                <div className="rounded border border-white/10 bg-ink-850 p-3 text-sm text-[#A0A0B8]">
+                  No booking history found for this user yet.
+                </div>
+              )}
             </div>
             <button className="mt-5 min-h-10 rounded border border-white/10 px-4 text-sm font-bold" onClick={() => setSelectedUser(null)}>Close</button>
           </section>

@@ -16,9 +16,11 @@ import { StatusBadge } from "@/components/status-badge";
 import { findResourceById, getAppData } from "@/lib/data";
 import { findBookingConflict, formatTimeRange } from "@/lib/booking-rules";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminDashboardPage() {
   const { activities, bookings, resources, users } = await getAppData();
-  const today = "2026-08-01";
+  const today = new Date().toISOString().slice(0, 10);
   const activeResources = resources.filter((resource) => resource.isActive);
   const activeBookings = bookings.filter((booking) => booking.status === "approved" || booking.status === "active");
   const pendingBookings = bookings.filter((booking) => booking.status === "pending");
@@ -95,7 +97,7 @@ export default async function AdminDashboardPage() {
             </Link>
           </div>
           <div className="space-y-3">
-            {todaysBookings.map((booking) => {
+            {todaysBookings.length > 0 ? todaysBookings.map((booking) => {
               const resource = findResourceById(resources, booking.resourceId);
 
               return (
@@ -112,7 +114,11 @@ export default async function AdminDashboardPage() {
                   </Link>
                 </article>
               );
-            })}
+            }) : (
+              <div className="rounded border border-white/10 bg-ink-850 p-4 text-sm text-[#A0A0B8]">
+                No bookings scheduled for today.
+              </div>
+            )}
           </div>
         </section>
 
@@ -124,14 +130,18 @@ export default async function AdminDashboardPage() {
             </Link>
           </div>
           <div className="space-y-3">
-            {activities.map((activity) => (
+            {activities.length > 0 ? activities.map((activity) => (
               <article key={activity.id} className="rounded border border-white/10 bg-ink-850 p-3">
                 <p className="font-bold">
                   {activity.actor} {activity.action} {activity.target}
                 </p>
                 <p className="text-sm text-[#A0A0B8]">{activity.time}</p>
               </article>
-            ))}
+            )) : (
+              <div className="rounded border border-white/10 bg-ink-850 p-4 text-sm text-[#A0A0B8]">
+                Activity will appear here as bookings and admin actions happen.
+              </div>
+            )}
           </div>
         </section>
       </div>
@@ -141,7 +151,7 @@ export default async function AdminDashboardPage() {
           <div>
             <h3 className="text-xl font-black text-signal-warning">Conflict center</h3>
             <p className="mt-1 text-sm text-[#F5E4C3]">
-              {conflicts.length > 0 ? `${conflicts.length} potential conflict needs review.` : "No active conflicts in the current mock data."}
+              {conflicts.length > 0 ? `${conflicts.length} potential conflict needs review.` : "No active conflicts in the current booking data."}
             </p>
           </div>
           <Link

@@ -132,6 +132,68 @@ function mapBooking(row: DbBooking, usersById: Map<string, AdminUser>): Booking 
   };
 }
 
+function formatRelativeDate(value: string) {
+  if (!value) {
+    return "Recently";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
+}
+
+function activityToneForStatus(status: BookingStatus): ActivityLog["tone"] {
+  if (status === "approved" || status === "active" || status === "completed") {
+    return "success";
+  }
+
+  if (status === "pending") {
+    return "warning";
+  }
+
+  if (status === "cancelled" || status === "rejected") {
+    return "danger";
+  }
+
+  return "info";
+}
+
+function activityActionForStatus(status: BookingStatus) {
+  if (status === "approved") return "approved booking for";
+  if (status === "active") return "started booking for";
+  if (status === "completed") return "completed booking for";
+  if (status === "cancelled") return "cancelled booking for";
+  if (status === "rejected") return "rejected booking for";
+  return "requested";
+}
+
+function generateActivityFromBookings(bookings: Booking[], resources: Resource[]): ActivityLog[] {
+  return bookings
+    .slice()
+    .sort((a, b) => `${b.date} ${b.startTime}`.localeCompare(`${a.date} ${a.startTime}`))
+    .slice(0, 8)
+    .map((booking) => {
+      const resource = findResourceById(resources, booking.resourceId);
+
+      return {
+        id: `booking-activity-${booking.id}`,
+        actor: booking.requester,
+        action: activityActionForStatus(booking.status),
+        target: resource?.name ?? "Unknown resource",
+        time: `${booking.date} · ${booking.startTime}-${booking.endTime}`,
+        tone: activityToneForStatus(booking.status)
+      };
+    });
+}
+
 async function readSupabaseTable<T extends DbResource>(table: string) {
   const supabase = createServiceSupabaseClient();
   const { data, error } = await supabase.from(table).select("*");
@@ -205,7 +267,8 @@ export async function getActivityData(): Promise<ActivityLog[]> {
     const rows = await readSupabaseTable<Record<string, unknown>>("audit_logs");
 
     if (rows.length === 0) {
-      return activityLogs;
+      const [bookings, resources] = await Promise.all([getBookingsData(), getResourcesData()]);
+      return generateActivityFromBookings(bookings, resources);
     }
 
     return rows.slice(-8).reverse().map((row, index) => ({
@@ -213,11 +276,13 @@ export async function getActivityData(): Promise<ActivityLog[]> {
       actor: asString(row.user_id, "System"),
       action: asString(row.action, "updated"),
       target: asString(row.booking_id, "platform"),
-      time: asString(row.created_at, "Recently"),
+      time: formatRelativeDate(asString(row.created_at, "Recently")),
       tone: "info"
     }));
   } catch {
-    return activityLogs;
+    const [bookings, resources] = await Promise.all([getBookingsData(), getResourcesData()]);
+    const generatedActivity = generateActivityFromBookings(bookings, resources);
+    return generatedActivity.length > 0 ? generatedActivity : activityLogs;
   }
 }
 

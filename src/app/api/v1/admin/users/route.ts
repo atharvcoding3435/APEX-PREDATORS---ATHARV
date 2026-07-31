@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { getUsersData } from "@/lib/data";
 import { users } from "@/lib/mock-data";
+import { createServiceSupabaseClient, isSupabaseServiceConfigured } from "@/lib/supabase";
 
 const updateUserSchema = z.object({
   id: z.string().min(1),
@@ -40,7 +41,8 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const user = users.find((item) => item.id === parsed.data.id);
+  const liveUsers = await getUsersData();
+  const user = liveUsers.find((item) => item.id === parsed.data.id) ?? users.find((item) => item.id === parsed.data.id);
 
   if (!user) {
     return NextResponse.json(
@@ -49,5 +51,40 @@ export async function PATCH(request: Request) {
     );
   }
 
-  return NextResponse.json({ success: true, data: { ...user, isActive: parsed.data.isActive } });
+  if (isSupabaseServiceConfigured()) {
+    const supabase = createServiceSupabaseClient();
+    const { data, error } = await supabase
+      .from("users")
+      .update({ is_active: parsed.data.isActive })
+      .eq("id", parsed.data.id)
+      .select("*")
+      .single();
+
+    if (error || !data) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "USER_UPDATE_FAILED",
+          message: error?.message ?? "User could not be updated."
+        },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...user,
+        name: String(data.name ?? data.full_name ?? user.name),
+        email: String(data.email ?? user.email),
+        role: user.role,
+        department: String(data.department ?? user.department),
+        isActive: Boolean(data.is_active ?? parsed.data.isActive),
+        lastActive: String(data.last_login_at ?? user.lastActive)
+      },
+      source: "supabase"
+    });
+  }
+
+  return NextResponse.json({ success: true, data: { ...user, isActive: parsed.data.isActive }, source: "mock" });
 }
