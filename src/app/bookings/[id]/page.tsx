@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { notFound, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -9,14 +9,15 @@ import {
   CheckCircle2,
   ClipboardList,
   Clock3,
+  Loader2,
   MapPin,
   XCircle
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
 import { getBooking, getBookingResource } from "@/lib/mock-data";
-import type { BookingStatus } from "@/lib/types";
+import type { Booking, BookingStatus, Resource } from "@/lib/types";
 import { titleCase } from "@/lib/utils";
 
 function getStatusCopy(status: BookingStatus) {
@@ -54,30 +55,51 @@ function getStatusCopy(status: BookingStatus) {
 
   return {
     icon: XCircle,
-    title: "Booking cancelled",
-    body: "This booking is no longer active. The slot can be offered again or processed through waitlist rules."
+    title: status === "rejected" ? "Booking rejected" : "Booking cancelled",
+    body: "This booking is no longer active. The slot is available for future eligible requests."
   };
 }
 
 export default function BookingDetailPage() {
   const params = useParams<{ id: string }>();
-  const originalBooking = getBooking(params.id);
-  const [localStatus, setLocalStatus] = useState<BookingStatus | null>(null);
+  const initialBooking = getBooking(params.id) ?? null;
+  const initialResource = initialBooking ? getBookingResource(initialBooking) ?? null : null;
+  const [booking, setBooking] = useState<Booking | null>(initialBooking);
+  const [resource, setResource] = useState<Resource | null>(initialResource);
+  const [isLoading, setIsLoading] = useState(true);
+  const [message, setMessage] = useState("");
 
-  if (!originalBooking) {
-    notFound();
-  }
+  useEffect(() => {
+    async function loadBookingDetail() {
+      const [bookingResponse, resourceResponse] = await Promise.all([
+        fetch("/api/v1/bookings"),
+        fetch("/api/v1/resources")
+      ]);
+      const [bookingPayload, resourcePayload] = await Promise.all([
+        bookingResponse.json(),
+        resourceResponse.json()
+      ]);
+      const liveBooking = Array.isArray(bookingPayload.data)
+        ? (bookingPayload.data as Booking[]).find((item) => item.id === params.id) ?? null
+        : null;
+      const liveResource = liveBooking && Array.isArray(resourcePayload.data)
+        ? (resourcePayload.data as Resource[]).find((item) => item.id === liveBooking.resourceId) ?? null
+        : null;
 
-  const booking = {
-    ...originalBooking,
-    status: localStatus ?? originalBooking.status
-  };
-  const resource = getBookingResource(booking);
-  const statusCopy = getStatusCopy(booking.status);
-  const StatusIcon = statusCopy.icon;
-  const canCancel = booking.status === "pending" || booking.status === "approved";
+      setBooking(liveBooking ?? initialBooking);
+      setResource(liveResource ?? initialResource);
+    }
+
+    loadBookingDetail()
+      .catch(() => setMessage("Could not refresh live booking details. Showing the latest local data available."))
+      .finally(() => setIsLoading(false));
+  }, [initialBooking, initialResource, params.id]);
 
   const timeline = useMemo(() => {
+    if (!booking) {
+      return [];
+    }
+
     const events = [
       {
         title: "Booking created",
@@ -86,7 +108,7 @@ export default function BookingDetailPage() {
       }
     ];
 
-    if (originalBooking.status === "pending") {
+    if (booking.status === "pending") {
       events.push({
         title: "Approval requested",
         body: "The request is waiting for an authorized reviewer.",
@@ -94,7 +116,7 @@ export default function BookingDetailPage() {
       });
     }
 
-    if (originalBooking.status === "approved" || originalBooking.status === "active") {
+    if (booking.status === "approved" || booking.status === "active" || booking.status === "completed") {
       events.push({
         title: "Booking approved",
         body: "The slot was approved for use.",
@@ -102,7 +124,7 @@ export default function BookingDetailPage() {
       });
     }
 
-    if (originalBooking.status === "active") {
+    if (booking.status === "active") {
       events.push({
         title: "Booking active",
         body: "The approved reservation is currently inside its scheduled time window.",
@@ -110,12 +132,7 @@ export default function BookingDetailPage() {
       });
     }
 
-    if (originalBooking.status === "completed") {
-      events.push({
-        title: "Booking approved",
-        body: "The slot was approved for use.",
-        tone: "text-signal-success"
-      });
+    if (booking.status === "completed") {
       events.push({
         title: "Booking completed",
         body: "The reservation finished and was retained for reporting.",
@@ -123,16 +140,43 @@ export default function BookingDetailPage() {
       });
     }
 
-    if (booking.status === "cancelled") {
+    if (booking.status === "cancelled" || booking.status === "rejected") {
       events.push({
-        title: "Booking cancelled",
-        body: localStatus ? "Cancelled in this demo session. Persistence will connect during the Supabase sprint." : "The booking is inactive.",
+        title: booking.status === "rejected" ? "Booking rejected" : "Booking cancelled",
+        body: "The booking is inactive and no longer blocks this slot.",
         tone: "text-signal-danger"
       });
     }
 
     return events;
-  }, [booking.date, booking.requester, booking.status, localStatus, originalBooking.status, resource?.name]);
+  }, [booking, resource?.name]);
+
+  if (!booking) {
+    return (
+      <AppShell
+        active="/bookings"
+        eyebrow="Booking detail"
+        title="Booking not found"
+        description="The requested booking could not be found in the current booking data."
+        actions={
+          <Link href="/bookings" className="inline-flex min-h-11 items-center gap-2 rounded border border-white/10 bg-ink-850 px-4 text-sm font-bold hover:bg-white/5">
+            <ArrowLeft size={18} aria-hidden="true" />
+            Back to Bookings
+          </Link>
+        }
+      >
+        <section className="rounded-lg border border-white/10 bg-ink-900 p-8 text-center">
+          <ClipboardList className="mx-auto mb-3 text-signal-info" size={34} aria-hidden="true" />
+          <h3 className="text-xl font-black">No matching booking</h3>
+          <p className="mt-2 text-sm text-[#A0A0B8]">It may have been removed, or the live data could not be loaded.</p>
+        </section>
+      </AppShell>
+    );
+  }
+
+  const statusCopy = getStatusCopy(booking.status);
+  const StatusIcon = statusCopy.icon;
+  const canCancel = booking.status === "pending" || booking.status === "approved";
 
   return (
     <AppShell
@@ -150,12 +194,19 @@ export default function BookingDetailPage() {
         </Link>
       }
     >
+      {message || isLoading ? (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-white/10 bg-ink-900 p-3 text-sm font-bold text-[#C9C9DA]" role="status">
+          {isLoading ? <Loader2 className="animate-spin text-signal-info" size={17} aria-hidden="true" /> : <AlertTriangle className="text-signal-warning" size={17} aria-hidden="true" />}
+          {isLoading ? "Refreshing booking details" : message}
+        </div>
+      ) : null}
+
       <div className="grid gap-6 xl:grid-cols-[1fr_0.85fr]">
         <section className="rounded-lg border border-white/10 bg-ink-900 p-5">
           <div className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-sm font-bold text-[#A0A0B8]">Booking ID</p>
-              <h3 className="text-2xl font-black">{booking.id}</h3>
+              <h3 className="break-all text-2xl font-black">{booking.id}</h3>
             </div>
             <StatusBadge kind="booking" status={booking.status} />
           </div>
@@ -204,7 +255,7 @@ export default function BookingDetailPage() {
           {canCancel ? (
             <button
               className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded border border-signal-danger/40 bg-signal-danger/10 px-4 text-sm font-bold text-signal-danger hover:bg-signal-danger/20"
-              onClick={() => setLocalStatus("cancelled")}
+              onClick={() => setBooking((current) => (current ? { ...current, status: "cancelled" } : current))}
             >
               <AlertTriangle size={18} aria-hidden="true" />
               Cancel Booking

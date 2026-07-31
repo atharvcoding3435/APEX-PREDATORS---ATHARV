@@ -12,6 +12,7 @@ import {
   Radio,
   ShieldAlert,
   Sparkles,
+  Wifi,
   XCircle
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
@@ -55,6 +56,10 @@ type ConflictResponse = {
 const roleOptions: UserRole[] = publicSignupRoles;
 const slotStarts = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
 
+function todayString() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function getSlotClass(status: string, isSelected: boolean) {
   if (isSelected) {
     return "border-white bg-white text-ink-950";
@@ -80,7 +85,7 @@ export default function NewBookingPage() {
   const [resources, setResources] = useState(initialResources);
   const [bookings, setBookings] = useState(initialBookings);
   const [resourceId, setResourceId] = useState("");
-  const [date, setDate] = useState("2026-08-01");
+  const [date, setDate] = useState(todayString());
   const [startTime, setStartTime] = useState("10:00");
   const [endTime, setEndTime] = useState("11:00");
   const [requester, setRequester] = useState("Ananya Sharma");
@@ -91,6 +96,7 @@ export default function NewBookingPage() {
   const [serverConflict, setServerConflict] = useState<ConflictResponse | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingAvailability, setIsLoadingAvailability] = useState(true);
 
   const selectableResources = useMemo(
     () => resources.filter((resource) => getResourceAccess(requesterRole, resource).canBook),
@@ -140,7 +146,7 @@ export default function NewBookingPage() {
       }
     }
 
-    loadLiveData().catch(() => undefined);
+    loadLiveData().catch(() => undefined).finally(() => setIsLoadingAvailability(false));
   }, []);
 
   useEffect(() => {
@@ -412,7 +418,13 @@ export default function NewBookingPage() {
 
         <aside className="space-y-4">
           <section className="rounded-lg border border-white/10 bg-ink-900 p-4">
-            <h3 className="text-xl font-black">Real-time availability</h3>
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-xl font-black">Availability</h3>
+              <span className="inline-flex items-center gap-2 rounded border border-white/10 bg-white/[0.03] px-2 py-1 text-xs font-bold text-[#A0A0B8]">
+                {isLoadingAvailability ? <Loader2 className="animate-spin" size={14} aria-hidden="true" /> : <Wifi size={14} aria-hidden="true" />}
+                {isLoadingAvailability ? "Syncing" : "Live data"}
+              </span>
+            </div>
             <div
               className={cn(
                 "mt-4 flex items-start gap-3 rounded-lg border p-4",
@@ -443,7 +455,7 @@ export default function NewBookingPage() {
                 </p>
                 <p className="mt-1 text-sm text-[#C9C9DA]">
                   {slotStatus === "available"
-                    ? "This slot is clear against active bookings. Supabase Realtime will refresh this status when connected."
+                    ? "This slot is clear against current pending, approved, and active bookings."
                     : "Pending, approved, and active bookings block this selection."}
                 </p>
               </div>
@@ -463,8 +475,13 @@ export default function NewBookingPage() {
                   <button
                     key={slotStart}
                     type="button"
-                    className={cn("min-h-20 rounded border p-3 text-left text-sm font-bold transition", getSlotClass(status, isSelected))}
+                    className={cn(
+                      "min-h-20 rounded border p-3 text-left text-sm font-bold transition",
+                      getSlotClass(status, isSelected),
+                      conflictForSlot && conflict?.id === conflictForSlot.id && "ring-2 ring-signal-danger"
+                    )}
                     title={conflictForSlot ? `${conflictForSlot.requester}: ${formatTimeRange(conflictForSlot.startTime, conflictForSlot.endTime)}` : titleCase(status)}
+                    disabled={status === "past"}
                     onClick={() => {
                       if (!isPastSlot(date, slotEnd)) {
                         setStartTime(slotStart);
