@@ -53,53 +53,42 @@ export async function PATCH(request: Request) {
 
   if (isSupabaseServiceConfigured()) {
     const supabase = createServiceSupabaseClient();
-    const { data, error } = await supabase
+
+    const { data: authData, error: authError } = await supabase.auth.admin.updateUserById(parsed.data.id, {
+      ban_duration: parsed.data.isActive ? "none" : "87600h"
+    });
+
+    if (authError || !authData.user) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "USER_UPDATE_FAILED",
+          message: authError?.message ?? "User could not be updated."
+        },
+        { status: 500 }
+      );
+    }
+
+    const { data } = await supabase
       .from("users")
       .update({ is_active: parsed.data.isActive })
       .eq("id", parsed.data.id)
       .select("*")
       .single();
 
-    if (!error && data) {
-      return NextResponse.json({
-        success: true,
-        data: {
-          ...user,
-          name: String(data.name ?? data.full_name ?? user.name),
-          email: String(data.email ?? user.email),
-          role: user.role,
-          department: String(data.department ?? user.department),
-          isActive: Boolean(data.is_active ?? parsed.data.isActive),
-          lastActive: String(data.last_login_at ?? user.lastActive)
-        },
-        source: "supabase"
-      });
-    }
-
-    if (error?.message.includes("is_active")) {
-      const { data: authData, error: authError } = await supabase.auth.admin.updateUserById(parsed.data.id, {
-        ban_duration: parsed.data.isActive ? "none" : "876000h"
-      });
-
-      if (!authError && authData.user) {
-        return NextResponse.json({
-          success: true,
-          data: { ...user, isActive: parsed.data.isActive },
-          source: "supabase-auth"
-        });
-      }
-    }
-
-    if (error || !data) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "USER_UPDATE_FAILED",
-          message: error?.message ?? "User could not be updated."
-        },
-        { status: 500 }
-      );
-    }
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...user,
+        name: String(data?.name ?? data?.full_name ?? user.name),
+        email: String(data?.email ?? authData.user.email ?? user.email),
+        role: user.role,
+        department: String(data?.department ?? user.department),
+        isActive: parsed.data.isActive,
+        lastActive: String(data?.last_login_at ?? user.lastActive)
+      },
+      source: data ? "supabase" : "supabase-auth"
+    });
   }
 
   return NextResponse.json({ success: true, data: { ...user, isActive: parsed.data.isActive }, source: "mock" });
